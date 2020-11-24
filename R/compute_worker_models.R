@@ -1,13 +1,16 @@
+#' @import dplyr
+#' @importFrom rlang .data
 compute_worker_models <- function(app_workers_data, period = "month",
                                   start_date = as.POSIXct("2020-03-01"),
                                   sig_p = 0.05) {
   app_workers_data <- app_workers_data %>%
-    filter(active) %>% select(-active) %>%
+    filter(.data$active) %>% select(-.data$active) %>%
     arrange(date) %>%
-    pivot_wider(names_from = worker_id, values_from = count, values_fill = 0)
+    tidyr::pivot_wider(names_from = .data$worker_id, values_from = count,
+                       values_fill = 0)
 
-  app_workers_zoo <- zoo(app_workers_data %>% select(-date),
-                         app_workers_data$date)
+  app_workers_zoo <- zoo::zoo(app_workers_data %>% select(-date),
+                              app_workers_data$date)
   # CausalImpact can't handle variables that begin with numbers
   names(app_workers_zoo) <- paste0("worker_",
                                    names(app_workers_zoo))

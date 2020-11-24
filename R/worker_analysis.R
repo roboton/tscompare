@@ -2,49 +2,45 @@
 #'
 #' Compare each worker to a set of comparable workers in the pre-period and
 #' evaluate deviation from average in the post-period to detect anomalous
-#` behavior.
+#' behavior.
 #'
-#' @param app_workers_data contains time-series data for each worker over a
-#`  the same period of time. Requires the following columns:
-#`  - date: the date by which activity was recorded.
-#`  - worker_id: a unique identifier for the worker.
-#`  - count: number of units of activity for the corresponding date/worker.
-#` @param app_id unique identifier for the application
-#` @param start_date date seperating the pre-period (matching) vs post-period
-#`  evaluating.
-#` @param period unit of time to compare workers with.
-#` @param min_pre_periods number of time units to qualify as an active worker in #`
-#`  pre-period.
-#` @param min_post_periods number of time units to qualify as an active worker in #`
-#`  post-period.
-#` @param min_workers minimum number of active workers to run the analysis.
-#` @param sig_p p-value threshold to determine statistical significance.
-#` @param save_model_data save_model_data whether to save analysis data.
-#` @param save_model save_model whether to save user models.
-#` @param save_output save_output whether to save model output.
+#' @param app_workers_data contains time-series data for each worker over the
+#'  same period of time. Requires the following columns:
+#'  - date: the date by which activity was recorded.
+#'  - worker_id: a unique identifier for the worker.
+#'  - count: number of units of activity for the corresponding date/worker.
+#' @param app_id unique identifier for the application
+#' @param start_date date seperating the pre-period (matching) vs post-period
+#'  evaluating.
+#' @param period unit of time to compare workers with.
+#' @param min_pre_periods number of time units to qualify as an active worker in
+#'  pre-period.
+#' @param min_post_periods number of time units to qualify as an active worker
+#'  in post-period.
+#' @param min_workers minimum number of active workers to run the analysis.
+#' @param sig_p p-value threshold to determine statistical significance.
+#' @param save_model_data save_model_data whether to save analysis data.
+#' @param save_model save_model whether to save user models.
+#' @param save_output save_output whether to save model output.
+#'
+#' @return app_id string for compeleted app worker analysis
+#' @export
+#' @import dplyr
 
 worker_analysis <- function(app_workers_data,
                             app_id = NA,
-                            # date to start anomaly detection
                             start_date = as.POSIXct("2020-03-01"),
-                            # unit of time to do analysis
                             period = "month",
-                            # number of time units to be an active worker
-                            # in the pre-period
                             min_pre_periods,
-                            # number of time units to be an active worker
-                            # in the post-period
                             min_post_periods,
-                            # minimum workers args
                             min_workers = 30,
                             sig_p = 0.05,
-                            # save data assets
                             save_model_data = TRUE,
                             save_model = TRUE,
                             save_output = TRUE) {
   # arg checks
   req_cols <- c("date", "worker_id", "count")
-  default_app_id <- as.numeric(now())
+  default_app_id <- as.numeric(lubridate::now())
 
   if (missing(min_pre_periods)) {
     if (period == "month") {
@@ -88,10 +84,10 @@ worker_analysis <- function(app_workers_data,
   }
 
   # output directory
-  dir.create(app_id, recursive = TRUE)
+  fs::dir_create(app_id)
 
   # prep app_workers_data
-  model_data_file <- file.path(app_id, "app_workers_data.rds")
+  model_data_file <- path(app_id, "app_workers_data.rds")
   if (file.exists(model_data_file)) {
     app_workers_data <- readRDS(model_data_file)
   } else {
@@ -104,7 +100,7 @@ worker_analysis <- function(app_workers_data,
   }
 
   # run model
-  model_file <- file.path(app_id, "app_workers_model.rds")
+  model_file <- path(app_id, "app_workers_model.rds")
   if (file.exists(model_file)) {
     app_workers_model <- readRDS(model_file)
   } else {
