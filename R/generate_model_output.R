@@ -17,7 +17,7 @@ generate_model_output <- function(
   ## Descriptive stats
   app_summary <- app_workers_data %>%
     mutate(date = as.character(date)) %>%
-    bind_rows(.data, mutate(.data, date = "all")) %>%
+    bind_rows(., mutate(., date = "all")) %>%
     group_by(date) %>%
     summarise(
       active_workers = n_distinct(.data$worker_id[.data$active]),
@@ -154,7 +154,7 @@ generate_model_output <- function(
                           as.data.frame() %>% rownames_to_column("month"))) %>%
     unnest(.data$series) %>%
     mutate(month = lubridate::ymd(.data$month)) %>%
-    write_csv("chw_timeseries.csv")
+    write_csv(path(output_dir, "chw_timeseries.csv"))
 
   top_chw_plots <- 10
 
