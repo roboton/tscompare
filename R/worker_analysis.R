@@ -21,7 +21,6 @@
 #' @param sig_p p-value threshold to determine statistical significance.
 #' @param save_model_data save_model_data whether to save analysis data.
 #' @param save_model save_model whether to save user models.
-#' @param save_output save_output whether to save model output.
 #'
 #' @return app_id string for compeleted app worker analysis
 #' @export
@@ -29,15 +28,14 @@
 
 worker_analysis <- function(app_workers_data,
                             app_id = NA,
-                            start_date = as.POSIXct("2020-03-01"),
+                            start_date = ymd("2020-03-01"),
                             period = "month",
                             min_pre_periods,
                             min_post_periods,
                             min_workers = 30,
                             sig_p = 0.05,
                             save_model_data = TRUE,
-                            save_model = TRUE,
-                            save_output = TRUE) {
+                            save_model = TRUE) {
   # arg checks
   req_cols <- c("date", "worker_id", "count")
   default_app_id <- as.numeric(lubridate::now())
@@ -73,8 +71,9 @@ worker_analysis <- function(app_workers_data,
   }
   if (!between(start_date, min(app_workers_data$date),
                max(app_workers_data$date))) {
-    stop(paste("start_date not within range(app_workers_data$date):",
-               range(app_workers_data$date)))
+    stop(paste("start_date", start_date,
+               "not within range(app_workers_data$date):",
+               paste(range(app_workers_data$date), collapse = " to ")))
   }
 
   # set app_id
@@ -104,7 +103,9 @@ worker_analysis <- function(app_workers_data,
   if (file.exists(model_file)) {
     app_workers_model <- readRDS(model_file)
   } else {
-    app_workers_model <- compute_worker_models(app_workers_data, start_date)
+    app_workers_model <- compute_worker_models(app_workers_data,
+                                               start_date = start_date,
+                                               period = period, sig_p = sig_p)
     if (save_model) {
       saveRDS(app_workers_model, model_file)
     }

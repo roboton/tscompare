@@ -30,7 +30,8 @@ generate_model_output <- function(
     write_csv(path(output_dir, "app_summary.csv"))
 
   # always monthly
-  date_range <- range(lubridate::ymd(app_summary$date), na.rm = TRUE)
+  date_range <- range(
+    lubridate::ymd(app_summary$date[app_summary$date != "all"]), na.rm = TRUE)
   date_seq <- seq(date_range[1], date_range[2], by = "month")
   yoy_summary <- app_summary %>%
     filter(date != "all") %>%
