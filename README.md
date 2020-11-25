@@ -12,14 +12,8 @@ Health Worker related data.
 
 ## Installation
 
-You can install the released version of chwork from
-[CRAN](https://CRAN.R-project.org) with:
-
-``` r
-install.packages("chwork")
-```
-
-And the development version from [GitHub](https://github.com/) with:
+You can install lhe development version of chwork from
+[GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
