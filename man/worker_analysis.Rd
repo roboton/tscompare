@@ -7,7 +7,7 @@
 worker_analysis(
   app_workers_data,
   app_id = NA,
-  start_date = as.POSIXct("2020-03-01"),
+  start_date = lubridate::ymd("2020-03-01"),
   period = "month",
   min_pre_periods,
   min_post_periods,
@@ -15,7 +15,7 @@ worker_analysis(
   sig_p = 0.05,
   save_model_data = TRUE,
   save_model = TRUE,
-  save_output = TRUE
+  use_cache = FALSE
 )
 }
 \arguments{
@@ -47,8 +47,6 @@ in post-period.}
 \item{save_model_data}{save_model_data whether to save analysis data.}
 
 \item{save_model}{save_model whether to save user models.}
-
-\item{save_output}{save_output whether to save model output.}
 }
 \value{
 app_id string for compeleted app worker analysis
@@ -57,4 +55,17 @@ app_id string for compeleted app worker analysis
 Compare each worker to a set of comparable workers in the pre-period and
 evaluate deviation from average in the post-period to detect anomalous
 behavior.
+}
+\examples{
+num_dates <- 90
+num_workers <- 30
+count_values <- 1:100
+test_data <- merge(paste0("worker_", 1:num_workers),
+      seq(Sys.Date(), Sys.Date() + (num_dates - 1), by = 1),
+      colnames = c("foo", "bar"))
+start_date <- Sys.Date() + floor(num_dates / 2)
+test_data$count <- sapply(1:(num_dates*num_workers),
+                          function(x) { sample(count_values, 1) })
+worker_analysis(setNames(test_data, c("worker_id", "date", "count")),
+                "test_analysis", start_date = start_date, period = "day")
 }

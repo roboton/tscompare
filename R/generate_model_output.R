@@ -7,7 +7,7 @@
 #' @importFrom utils head
 #' @importFrom rlang .data
 generate_model_output <- function(
-  app_workers_model, app_workers_data, app_id) {
+  app_workers_model, app_workers_data, app_id, sig_p) {
   # create output directory
   output_dir <- path(app_id, "output")
   fs::dir_create(output_dir)
@@ -87,6 +87,9 @@ generate_model_output <- function(
   model_summary <- tibble(
     worker_id = stringr::str_remove(names(app_workers_model), "worker_"),
     worker_perf = lapply(app_workers_model, function(mdl) {
+      if (is.null(mdl$summary)) {
+        return(NA)
+      }
       mdl$summary %>%
         tibble::rownames_to_column("type") %>%
         pivot_wider(names_from = .data$type, values_from = -.data$type) %>%

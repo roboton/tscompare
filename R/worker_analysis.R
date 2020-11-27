@@ -23,42 +23,48 @@
 #' @param save_model save_model whether to save user models.
 #'
 #' @return app_id string for compeleted app worker analysis
+#' @examples
+#' num_dates <- 90
+#' num_workers <- 30
+#' count_values <- 1:100
+#' test_data <- merge(paste0("worker_", 1:num_workers),
+#'       seq(Sys.Date(), Sys.Date() + (num_dates - 1), by = 1),
+#'       colnames = c("foo", "bar"))
+#' start_date <- Sys.Date() + floor(num_dates / 2)
+#' test_data$count <- sapply(1:(num_dates*num_workers),
+#'                           function(x) { sample(count_values, 1) })
+#' worker_analysis(setNames(test_data, c("worker_id", "date", "count")),
+#'                 "test_analysis", start_date = start_date, period = "day")
 #' @export
 #' @import dplyr
 
 worker_analysis <- function(app_workers_data,
                             app_id = NA,
-                            start_date = ymd("2020-03-01"),
+                            start_date = lubridate::ymd("2020-03-01"),
                             period = "month",
                             min_pre_periods,
                             min_post_periods,
                             min_workers = 30,
                             sig_p = 0.05,
                             save_model_data = TRUE,
-                            save_model = TRUE) {
+                            save_model = TRUE,
+                            use_cache = FALSE) {
   # arg checks
   req_cols <- c("date", "worker_id", "count")
   default_app_id <- as.numeric(lubridate::now())
 
+
+  # compute default pre/post periods
   if (missing(min_pre_periods)) {
-    if (period == "month") {
-      min_pre_periods <- 6
-    } else if (period == "week") {
-      min_pre_periods <- 24
-    } else if (period == "day") {
-      min_pre_periods <- 180
-    }
+    month_periods <- unique(lubridate::floor_date(app_workers_data$date,
+                                                  "month"))
+    min_pre_periods <- floor(sum(month_periods <= start_date) * 0.5)
   }
   if (missing(min_post_periods)) {
-    if (period == "month") {
-      min_post_periods <- 1
-    } else if (period == "week") {
-      min_post_periods <- 4
-    } else if (period == "day") {
-      min_post_periods <- 30
-    }
+    month_periods <- unique(lubridate::floor_date(app_workers_data$date,
+                                                  "month"))
+    min_post_periods <- floor(sum(month_periods > start_date) * 0.25)
   }
-
   if (mean(req_cols %in% names(app_workers_data)) != 1) {
     stop(paste("Missing columns in app_workers_data:",
                setdiff(req_cols, names(app_workers_data))))
@@ -87,7 +93,7 @@ worker_analysis <- function(app_workers_data,
 
   # prep app_workers_data
   model_data_file <- path(app_id, "app_workers_data.rds")
-  if (file.exists(model_data_file)) {
+  if (file.exists(model_data_file) && use_cache) {
     app_workers_data <- readRDS(model_data_file)
   } else {
     app_workers_data <- prep_app_workers(
@@ -100,7 +106,7 @@ worker_analysis <- function(app_workers_data,
 
   # run model
   model_file <- path(app_id, "app_workers_model.rds")
-  if (file.exists(model_file)) {
+  if (file.exists(model_file) && use_cache) {
     app_workers_model <- readRDS(model_file)
   } else {
     app_workers_model <- compute_worker_models(app_workers_data,
@@ -112,5 +118,5 @@ worker_analysis <- function(app_workers_data,
   }
 
   # run output
-  generate_model_output(app_workers_model, app_workers_data, app_id)
+  generate_model_output(app_workers_model, app_workers_data, app_id, sig_p)
 }
