@@ -29,7 +29,7 @@ generate_model_output <- function(
   app_summary %>%
     write_csv(path(output_dir, "app_summary.csv"))
 
-  # always monthly
+  # always yoy monthly (independent of period argument)
   date_range <- range(
     lubridate::ymd(app_summary$date[app_summary$date != "all"]), na.rm = TRUE)
   date_seq <- seq(date_range[1], date_range[2], by = "month")
@@ -109,33 +109,37 @@ generate_model_output <- function(
 
   ### CHW summary stats
 
-  #### Monthly
+  #### Timeseries summary
 
-  tibble(worker_id = names(app_workers_model),
+  timeseries_summary <- tibble(worker_id = names(app_workers_model),
          app_id = app_id,
-         series = purrr::map(app_workers_model, ~ pluck(.x, "series") %>%
+         series = purrr::map(app_workers_model, ~ purrr::pluck(.x, "series") %>%
                                as.data.frame() %>%
-                               rownames_to_column("month"))) %>%
+                               tibble::rownames_to_column("date"))) %>%
     unnest(.data$series) %>%
     mutate(point_perf = case_when(point.effect.lower > 0 ~ "over",
                                   point.effect.upper < 0  ~ "under",
                                   TRUE ~ "average")) %>%
-    select(.data$month, .data$app_id, .data$point_perf) %>%
-    #mutate(month = forcats::fct_rev(month)) %>%
-    mutate(month = lubridate::ymd(.data$month)) %>%
-    filter(.data$month >= start_date) %>%
-    group_by(.data$month, .data$app_id, .data$point_perf) %>%
+    select(.data$date, .data$app_id, .data$point_perf) %>%
+    mutate(date = lubridate::ymd(.data$date)) %>%
+    filter(.data$date >= start_date) %>%
+    group_by(.data$date , .data$app_id, .data$point_perf) %>%
     summarise(workers = n(), .groups = "drop") %>%
-    arrange(.data$app_id, .data$month) %>%
+    arrange(.data$app_id, .data$date)
+
+  timeseries_summary %>%
+    write_csv(path(output_dir, "model_summary_timeseries.csv"))
+
+  timeseries_summary %>%
     #filter(point_perf != "average") %>%
-    ggplot(aes(.data$month, .data$workers, fill = .data$point_perf,
+    ggplot(aes(.data$date, .data$workers, fill = .data$point_perf,
                color = .data$point_perf)) +
     geom_bar(stat = "identity") +
     #geom_line() +
     theme(legend.position = "bottom", legend.title = element_blank()) +
-    ggtitle("Monthly performance summary")
+    ggtitle("Performance summary over time")
 
-  ggsave(path(output_dir, "model_monthly_summary.png"))
+  ggsave(path(output_dir, "model_timeseries_summary.png"))
 
   #### Cumulative
 
@@ -153,11 +157,11 @@ generate_model_output <- function(
 
   model_summary %>%
     select(.data$worker_id, .data$p_Cumulative) %>%
-    mutate(series = purrr::map(.data$worker_id, ~
-                          app_workers_model[[paste0("worker_", .x)]]$series %>%
-                          as.data.frame() %>% rownames_to_column("month"))) %>%
+    mutate(series = purrr::map(
+      .data$worker_id, ~ app_workers_model[[paste0("worker_", .x)]]$series %>%
+        as.data.frame() %>% tibble::rownames_to_column("date"))) %>%
     unnest(.data$series) %>%
-    mutate(month = lubridate::ymd(.data$month)) %>%
+    mutate(date = lubridate::ymd(.data$date)) %>%
     write_csv(path(output_dir, "chw_timeseries.csv"))
 
   top_chw_plots <- 10

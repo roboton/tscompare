@@ -21,7 +21,7 @@
 #' @param sig_p p-value threshold to determine statistical significance.
 #' @param save_model_data save_model_data whether to save analysis data.
 #' @param save_model save_model whether to save user models.
-#'
+#' @param use_cache use saved data and models from previous run.
 #' @return app_id string for compeleted app worker analysis
 #' @examples
 #' num_dates <- 90

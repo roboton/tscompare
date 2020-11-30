@@ -25,15 +25,26 @@ The goal of chwork is to provide an analytics library for Community Health Worke
 
 You can install lhe development version of chwork from [GitHub](https://github.com/) with:
 
-``` r
+```{r}
 # install.packages("devtools")
 devtools::install_github("roboton/chwork")
 ```
+
 ## Example
 
-This is a basic example which shows you how to solve a common problem:
+This is a basic example with simulated data:
 
 ```{r example}
 library(chwork)
-## basic example code
+num_dates <- 90
+num_workers <- 30
+count_values <- 1:100
+test_data <- merge(paste0("worker_", 1:num_workers),
+      seq(Sys.Date(), Sys.Date() + (num_dates - 1), by = 1),
+      colnames = c("foo", "bar"))
+start_date <- Sys.Date() + floor(num_dates / 2)
+test_data$count <- sapply(1:(num_dates*num_workers),
+                          function(x) { sample(count_values, 1) })
+worker_analysis(setNames(test_data, c("worker_id", "date", "count")),
+                "test_analysis", start_date = start_date, period = "day")
 ```

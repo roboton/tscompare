@@ -47,6 +47,8 @@ in post-period.}
 \item{save_model_data}{save_model_data whether to save analysis data.}
 
 \item{save_model}{save_model whether to save user models.}
+
+\item{use_cache}{use saved data and models from previous run.}
 }
 \value{
 app_id string for compeleted app worker analysis
