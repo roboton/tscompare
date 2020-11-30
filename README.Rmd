@@ -45,6 +45,8 @@ test_data <- merge(paste0("worker_", 1:num_workers),
 start_date <- Sys.Date() + floor(num_dates / 2)
 test_data$count <- sapply(1:(num_dates*num_workers),
                           function(x) { sample(count_values, 1) })
-worker_analysis(setNames(test_data, c("worker_id", "date", "count")),
-                "test_analysis", start_date = start_date, period = "day")
+test_data <- setNames(test_data, c("worker_id", "date", "count"))
+output_dir <- worker_analysis(
+  test_data, "test_analysis", start_date = start_date, period = "day")
+paste("worker analysis output in directory:", output_dir)
 ```
