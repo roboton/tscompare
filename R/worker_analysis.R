@@ -26,15 +26,17 @@
 #' @examples
 #' num_dates <- 90
 #' num_workers <- 30
-#' count_values <- 1:100
 #' test_data <- merge(paste0("worker_", 1:num_workers),
 #'       seq(Sys.Date(), Sys.Date() + (num_dates - 1), by = 1),
 #'       colnames = c("foo", "bar"))
 #' start_date <- Sys.Date() + floor(num_dates / 2)
 #' test_data$count <- sapply(1:(num_dates*num_workers),
-#'                           function(x) { sample(count_values, 1) })
-#' worker_analysis(setNames(test_data, c("worker_id", "date", "count")),
-#'                 "test_analysis", start_date = start_date, period = "day")
+#'                           function(x) { rnorm(1, 50, 20) })
+#' test_data <- setNames(test_data, c("worker_id", "date", "count"))
+#' output_dir <- worker_analysis(
+#'   test_data, "test_analysis", start_date = start_date, period = "day",
+#'   sig_p = 0.05 / num_workers) # bonferroni correction
+#' paste("worker analysis output in directory:", output_dir)
 #' @export
 #' @import dplyr
 
