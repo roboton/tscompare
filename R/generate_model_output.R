@@ -6,6 +6,7 @@
 #' @importFrom graphics plot
 #' @importFrom utils head
 #' @importFrom rlang .data
+#' @importFrom stats median sd
 generate_model_output <- function(
   app_workers_model, app_workers_data, app_id, sig_p) {
   # create output directory
@@ -82,6 +83,35 @@ generate_model_output <- function(
     pivot_longer(-date) %>%
     write_csv(path(output_dir, "desc_overall.csv"))
 
+  ### Worker count variance over time
+  app_workers_data %>%
+    group_by(date) %>%
+    ggplot(aes(date, count, group = date)) +
+    scale_y_log10() +
+    geom_boxplot()
+  ggsave(path(output_dir, "desc_variance_boxplot.png"))
+
+  app_workers_data %>%
+    mutate(count = log10(count)) %>%
+    group_by(date) %>%
+    summarise(across(count, list(mean = mean, sd = sd, med = median)),
+              .groups = "drop") %>%
+    mutate(count_lb = .data$count_mean - 2 * .data$count_sd,
+           count_ub = .data$count_mean + 2 * .data$count_sd) %>%
+    pivot_longer(c(.data$count_med, .data$count_mean),
+                 names_to = "stat", values_to = "value") %>%
+    pivot_longer(c(.data$value, .data$count_sd)) %>%
+    mutate(across(c(.data$count_lb, .data$count_ub),
+                  ~ if_else(name == "count_sd", NA_real_, .x))) %>%
+    ggplot() +
+    geom_line(aes(.data$date, .data$value, color = stat)) +
+    geom_ribbon(aes(.data$date, .data$value,
+                    ymin = .data$count_lb, ymax = .data$count_ub), alpha = 0.1,
+                color = "grey") +
+    geom_vline(xintercept = start_date, alpha = 0.3) +
+    facet_wrap(~ .data$name, scales = "free_y", ncol = 1)
+  ggsave(path(output_dir, "desc_variance_timeseries.png"))
+
   ## CHW performance model
 
   model_summary <- tibble(
@@ -155,14 +185,14 @@ generate_model_output <- function(
 
   ### CHW-specific stats
 
-  model_summary %>%
+  chw_timeseries <- model_summary %>%
     select(.data$worker_id, .data$p_Cumulative) %>%
     mutate(series = purrr::map(
       .data$worker_id, ~ app_workers_model[[paste0("worker_", .x)]]$series %>%
         as.data.frame() %>% tibble::rownames_to_column("date"))) %>%
     unnest(.data$series) %>%
-    mutate(date = lubridate::ymd(.data$date)) %>%
-    write_csv(path(output_dir, "chw_timeseries.csv"))
+    mutate(date = lubridate::ymd(.data$date))
+  write_csv(chw_timeseries, path(output_dir, "chw_timeseries.csv"))
 
   top_chw_plots <- 10
 
@@ -170,5 +200,22 @@ generate_model_output <- function(
     plot(app_workers_model[[paste0("worker_", .x)]], "original")
     ggsave(path(output_dir, paste0(.x, ".png")))
   })
+
+  ### Performance groups over time
+
+  chw_timeseries %>%
+    select(.data$worker_id, .data$date, count = .data$response) %>%
+    left_join(
+      model_summary %>%
+        select(.data$worker_id, .data$performance), by = "worker_id") %>%
+    group_by(.data$date, .data$performance) %>%
+    summarise(across(.data$count, list(mean = mean, sd = sd))) %>%
+    ggplot(aes(.data$date, .data$count_mean, color = .data$performance)) +
+    geom_line() + geom_point()
+    geom_errorbar(aes(ymin = .data$count_mean - 1.96 * .data$count_sd,
+                      ymax = .data$count_mean + 1.96 * .data$count_sd),
+                  alpha = 0.3)
+  ggsave(path(output_dir, "perf_groups_timeseries.png"))
+
   return(app_id)
 }
