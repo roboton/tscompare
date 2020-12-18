@@ -87,12 +87,10 @@ generate_model_output <- function(
   app_workers_data %>%
     group_by(date) %>%
     ggplot(aes(date, count, group = date)) +
-    scale_y_log10() +
     geom_boxplot()
   ggsave(path(output_dir, "desc_variance_boxplot.png"))
 
   app_workers_data %>%
-    mutate(count = log10(count)) %>%
     group_by(date) %>%
     summarise(across(count, list(mean = mean, sd = sd, med = median)),
               .groups = "drop") %>%
