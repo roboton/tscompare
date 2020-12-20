@@ -196,7 +196,7 @@ generate_model_output <- function(
 
   tmp <- purrr::map(head(model_summary$worker_id, top_chw_plots), function(.x) {
     plot(app_workers_model[[paste0("worker_", .x)]], "original")
-    ggsave(path(output_dir, paste0(.x, ".png")))
+    ggsave(path(output_dir, paste0("worker_", .x, ".png")))
   })
 
   ### Performance groups over time
