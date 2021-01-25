@@ -40,7 +40,7 @@ set.seed(143)
 num_dates <- 90
 num_workers <- 30
 test_data <- setNames(
-  merge(paste0("worker_", 1:num_workers),
+  merge(as.character(1:num_workers),
         seq(Sys.Date(), Sys.Date() + (num_dates - 1), by = 1),
         colnames = c("worker_id", "date")), c("worker_id", "date"))
 start_date <- Sys.Date() + floor(num_dates / 2)

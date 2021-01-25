@@ -7,8 +7,10 @@
 #' @importFrom utils head
 #' @importFrom rlang .data
 #' @importFrom stats median sd
+#' @importFrom forcats fct_rev
+#' @importFrom bsts SuggestBurn
 generate_model_output <- function(
-  app_workers_model, app_workers_data, app_id, sig_p) {
+  app_workers_model, app_workers_data, app_id, sig_p, period = "day") {
   # create output directory
   output_dir <- path(app_id, "output")
   fs::dir_create(output_dir)
@@ -194,10 +196,16 @@ generate_model_output <- function(
 
   top_chw_plots <- 10
 
-  tmp <- purrr::map(head(model_summary$worker_id, top_chw_plots), function(.x) {
-    plot(app_workers_model[[paste0("worker_", .x)]], "original")
-    ggsave(path(output_dir, paste0("worker_", .x, ".png")))
-  })
+  peer_data <- purrr::map_dfr(
+    head(model_summary$worker_id, top_chw_plots), function(.x) {
+      worker_mdl <- app_workers_model[[paste0("worker_", .x)]]
+      plot(worker_mdl, "original")
+      ggsave(path(output_dir, paste0("worker_", .x, ".png")))
+      peer_data <- peer_plot(worker_mdl, target_worker_id = .x, period = period)
+      ggsave(path(output_dir, paste0("peers_", .x, ".png")))
+      return(peer_data)
+  }) %>% bind_rows()
+  write_csv(peer_data, path(output_dir, "chw_peers.csv"))
 
   ### Performance groups over time
 
@@ -216,4 +224,54 @@ generate_model_output <- function(
   ggsave(path(output_dir, "perf_groups_timeseries.png"))
 
   return(app_id)
+}
+
+peer_plot <- function(worker_mdl, target_worker_id, max_peers = 10,
+                      inclusion_thresh = 0.01, period = "day") {
+  dates <- seq.Date(from = min(worker_mdl$model$pre.period),
+                    to = max(worker_mdl$model$post.period),
+                    by = period)
+  peer_data <- worker_mdl$model$bsts.model$predictors %>% as_tibble() %>%
+    mutate(date = dates) %>%
+    bind_cols(tibble(
+      target = scale(as.numeric(worker_mdl$series$response)))) %>%
+    select(-.data$`(Intercept)`) %>%
+    pivot_longer(-date, names_to = "worker_id", values_to = "scaled_count") %>%
+    left_join(
+      worker_mdl$model$bsts.model$coefficients %>% as_tibble() %>%
+        slice(n = bsts::SuggestBurn(0.1, worker_mdl$model$bsts.model):n()) %>%
+        pivot_longer(everything(), names_to = "worker_id",
+                     values_to = "coef") %>%
+        group_by(.data$worker_id) %>%
+        summarise(inclusion_prob = mean(.data$coef != 0),
+                  coef = mean(.data$coef[.data$coef != 0]),
+                  positive_prob = mean(.data$coef > 0),
+                  sign = if_else(.data$positive_prob > 0.5, 1, -1),
+                  .groups = "drop") %>%
+        arrange(-.data$inclusion_prob, -.data$positive_prob),
+      by = "worker_id") %>%
+    mutate(scaled_count = if_else(!is.na(.data$coef),
+                                  .data$scaled_count * .data$coef,
+                                  .data$scaled_count),
+           inclusion_prob = if_else(.data$worker_id == "target", 1,
+                                    .data$inclusion_prob),
+           inclusion_rank = dense_rank(-.data$inclusion_prob)) %>%
+    mutate(target_worker_id = target_worker_id)
+
+  peer_data %>%
+    filter(.data$inclusion_rank %in% 1:max_peers &
+             .data$inclusion_prob > inclusion_thresh) %>%
+    mutate(type = forcats::fct_rev(if_else(.data$worker_id == "target",
+                                           "target", "peers")),
+           alpha = scale(if_else(.data$worker_id == "target", 1,
+                                 .data$inclusion_prob))) %>%
+    ggplot(aes(.data$date, .data$scaled_count, group = .data$worker_id,
+               color = .data$type, alpha = .data$alpha, lty = .data$type)) +
+    geom_line() +
+    geom_vline(xintercept = max(worker_mdl$model$pre.period), lty = 2,
+               color = "grey") +
+    theme(legend.position = "bottom", legend.title = element_blank()) +
+    guides(alpha = FALSE)
+
+  return(peer_data)
 }

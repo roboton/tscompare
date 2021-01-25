@@ -25,4 +25,7 @@ Imports:
     stringr,
     ggplot2,
     tibble,
-    purrr
+    purrr,
+    bsts,
+    forcats,
+    changepoint
