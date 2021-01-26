@@ -112,6 +112,13 @@ generate_model_output <- function(
     facet_wrap(~ .data$name, scales = "free_y", ncol = 1)
   ggsave(path(output_dir, "desc_variance_timeseries.png"))
 
+  ## Distribution of monthly count
+  app_workers_data %>%
+    ggplot(aes(count)) +
+    geom_histogram(bins = 50) +
+    scale_x_log10()
+  ggsave(path(output_dir, "desc_count_dist.png"))
+
   ## CHW performance model
 
   model_summary <- tibble(

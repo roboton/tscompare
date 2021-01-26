@@ -26,7 +26,7 @@
 #' @export
 #' @import dplyr
 #' @import tidyr
-#' @importFrom changepoint cpt.meanvar cpts
+#' @importFrom changepoint cpt.mean cpts
 #' @importFrom rlang .data
 detect_changepoint <- function(app_workers_data, app_id, num_cpts = 1,
                                include_data = FALSE, include_model = FALSE) {
@@ -38,7 +38,7 @@ detect_changepoint <- function(app_workers_data, app_id, num_cpts = 1,
     arrange(.data$date)
 
   cpt_mdl <- app_agg_data %>% pull(.data$count) %>%
-    cpt.meanvar(method = "BinSeg", Q = num_cpts) %>%
+    cpt.mean(method = "BinSeg", Q = num_cpts) %>%
     suppressWarnings()
 
   if (length(cpts(cpt_mdl)) == 0) {
