@@ -11,7 +11,7 @@
 #'  - count: number of units of activity for the corresponding date/worker.
 #' @param app_id unique identifier for the application
 #' @param start_date date seperating the pre-period (matching) vs post-period
-#'  evaluating.
+#'  evaluating. Uses detect_changepoint if missing (NULL).
 #' @param period unit of time to compare workers with.
 #' @param min_pre_periods number of time units to qualify as an active worker in
 #'  pre-period.
@@ -42,7 +42,7 @@
 
 worker_analysis <- function(app_workers_data,
                             app_id = NA,
-                            start_date = lubridate::ymd("2020-03-01"),
+                            start_date = NULL,
                             period = "month",
                             min_pre_periods,
                             min_post_periods,
@@ -54,7 +54,12 @@ worker_analysis <- function(app_workers_data,
   # arg checks
   req_cols <- c("date", "worker_id", "count")
   default_app_id <- as.numeric(lubridate::now())
-
+  if (is.null(start_date)) {
+    cpt <- detect_changepoint(app_workers_data, app_id, num_cpts = 1)
+    start_date <- unique(cpt$change_date)
+    warning(paste("start_date not specified, detected change date:",
+                  start_date))
+  }
 
   # compute default pre/post periods
   if (missing(min_pre_periods)) {
@@ -89,6 +94,7 @@ worker_analysis <- function(app_workers_data,
     warning(paste("app_id is NA, setting to default:", default_app_id))
     app_id <- default_app_id
   }
+  warning(paste("computing worker models for app_id:", app_id))
 
   # output directory
   fs::dir_create(app_id)

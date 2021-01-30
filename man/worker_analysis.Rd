@@ -7,7 +7,7 @@
 worker_analysis(
   app_workers_data,
   app_id = NA,
-  start_date = lubridate::ymd("2020-03-01"),
+  start_date = NULL,
   period = "month",
   min_pre_periods,
   min_post_periods,

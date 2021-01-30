@@ -50,7 +50,7 @@ detect_changepoint <- function(app_workers_data, app_id, num_cpts = 1,
     cpt_row <- app_agg_data %>%
       mutate(app_id = {{ app_id }},
              change_date = .data$date[cpt],
-             before_mean = mean(.data$count[.data$date < .data$change_date]),
+             before_mean = mean(.data$count[.data$date <= .data$change_date]),
              after_mean = mean(.data$count[.data$date > .data$change_date]),
              mean_change = .data$after_mean - .data$before_mean,
              pct_change = .data$mean_change / .data$before_mean)
