@@ -120,17 +120,18 @@ generate_model_output <- function(
   ggsave(path(output_dir, "desc_count_dist.png"))
 
   ## Percentile of worker submits pre/post period
-  app_worker_data %>%
-    group_by(period = if_else(date <= start_date, "pre", "post"), worker_id) %>%
-    summarise(across(count, mean)) %>%
-    mutate(count_list = list(count)) %>%
+  app_workers_data %>%
+    group_by(period = if_else(.data$date <= start_date, "pre", "post"),
+             .data$worker_id) %>%
+    summarise(across(.data$count, mean)) %>%
+    mutate(count_list = list(.data$count)) %>%
     rowwise() %>%
-    mutate(percentile = mean(count < unlist(count_list))) %>%
-    arrange(worker_id) %>%
-    select(-count_list, -count) %>%
-    pivot_wider(names_from = period, values_from = percentile) %>%
-    mutate(difference = post - pre) %>%
-    arrange(-abs(difference)) %>%
+    mutate(percentile = mean(.data$count < unlist(.data$count_list))) %>%
+    arrange(.data$worker_id) %>%
+    select(-.data$count_list, -.data$count) %>%
+    pivot_wider(names_from = .data$period, values_from = .data$percentile) %>%
+    mutate(difference = .data$post - .data$pre) %>%
+    arrange(-abs(.data$difference)) %>%
     write_csv("desc_percentile_change.csv")
 
   ## CHW performance model

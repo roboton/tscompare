@@ -30,7 +30,7 @@ same period of time. Requires the following columns:
 \item{app_id}{unique identifier for the application}
 
 \item{start_date}{date seperating the pre-period (matching) vs post-period
-evaluating.}
+evaluating. Uses detect_changepoint if missing (NULL).}
 
 \item{period}{unit of time to compare workers with.}
 
