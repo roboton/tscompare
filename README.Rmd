@@ -60,9 +60,9 @@ paste("worker analysis output in directory:", output_dir)
 ```
 
 ```{r, results="asis"}
-worker_pngs <- list.files("test_analysis/output", pattern = ".png$")
+output_pngs <- list.files("test_analysis/output", pattern = ".png$")
 
-for(png in worker_pngs){
+for(png in output_pngs){
   cat("\n") 
   cat("![", png, "](test_analysis/output/", png, ")", sep = "")
   cat("\n")

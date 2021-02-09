@@ -87,9 +87,9 @@ paste("worker analysis output in directory:", output_dir)
 ```
 
 ``` r
-worker_pngs <- list.files("test_analysis/output", pattern = ".png$")
+output_pngs <- list.files("test_analysis/output", pattern = ".png$")
 
-for(png in worker_pngs){
+for(png in output_pngs){
   cat("\n") 
   cat("![", png, "](test_analysis/output/", png, ")", sep = "")
   cat("\n")
@@ -100,6 +100,8 @@ for(png in worker_pngs){
 
 ![desc\_percentile\_month\_pre.png](test_analysis/output/desc_percentile_month_pre.png)
 
+![desc\_percentile\_ts.png](test_analysis/output/desc_percentile_ts.png)
+
 ![desc\_timeseries.png](test_analysis/output/desc_timeseries.png)
 
 ![desc\_variance\_boxplot.png](test_analysis/output/desc_variance_boxplot.png)
@@ -107,6 +109,8 @@ for(png in worker_pngs){
 ![desc\_variance\_timeseries.png](test_analysis/output/desc_variance_timeseries.png)
 
 ![model\_cumulative\_summary.png](test_analysis/output/model_cumulative_summary.png)
+
+![model\_perf\_groups\_timeseries.png](test_analysis/output/model_perf_groups_timeseries.png)
 
 ![model\_timeseries\_summary.png](test_analysis/output/model_timeseries_summary.png)
 
@@ -138,24 +142,44 @@ for(png in worker_pngs){
 
 ![worker\_1.png](test_analysis/output/worker_1.png)
 
+![worker\_12\_peers.png](test_analysis/output/worker_12_peers.png)
+
 ![worker\_12.png](test_analysis/output/worker_12.png)
+
+![worker\_13\_peers.png](test_analysis/output/worker_13_peers.png)
 
 ![worker\_13.png](test_analysis/output/worker_13.png)
 
+![worker\_14\_peers.png](test_analysis/output/worker_14_peers.png)
+
 ![worker\_14.png](test_analysis/output/worker_14.png)
 
+![worker\_17\_peers.png](test_analysis/output/worker_17_peers.png)
+
 ![worker\_17.png](test_analysis/output/worker_17.png)
+
+![worker\_18\_peers.png](test_analysis/output/worker_18_peers.png)
 
 ![worker\_18.png](test_analysis/output/worker_18.png)
 
 ![worker\_2.png](test_analysis/output/worker_2.png)
 
+![worker\_24\_peers.png](test_analysis/output/worker_24_peers.png)
+
 ![worker\_24.png](test_analysis/output/worker_24.png)
+
+![worker\_27\_peers.png](test_analysis/output/worker_27_peers.png)
 
 ![worker\_27.png](test_analysis/output/worker_27.png)
 
+![worker\_30\_peers.png](test_analysis/output/worker_30_peers.png)
+
 ![worker\_30.png](test_analysis/output/worker_30.png)
 
+![worker\_4\_peers.png](test_analysis/output/worker_4_peers.png)
+
 ![worker\_4.png](test_analysis/output/worker_4.png)
+
+![worker\_6\_peers.png](test_analysis/output/worker_6_peers.png)
 
 ![worker\_6.png](test_analysis/output/worker_6.png)

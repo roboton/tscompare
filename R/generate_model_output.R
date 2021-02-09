@@ -50,7 +50,7 @@ generate_model_output <- function(
     ungroup()
 
   yoy_summary %>%
-    write_csv(path(output_dir, "yoy_summary.csv"))
+    write_csv(path(output_dir, "app_yoy_summary.csv"))
 
   ### Timeseries plot
   app_summary %>%
@@ -119,36 +119,6 @@ generate_model_output <- function(
     scale_x_log10()
   ggsave(path(output_dir, "desc_count_dist.png"))
 
-  ## Percentile of worker submits pre/post period
-  # app_workers_data %>%
-  #   group_by(period = if_else(.data$date <= start_date, "pre", "post"),
-  #            .data$worker_id) %>%
-  #   summarise(across(.data$count, mean)) %>%
-  #   mutate(count_list = list(.data$count)) %>%
-  #   rowwise() %>%
-  #   mutate(percentile = mean(.data$count < unlist(.data$count_list))) %>%
-  #   arrange(.data$worker_id) %>%
-  #   select(-.data$count_list, -.data$count) %>%
-  #   pivot_wider(names_from = .data$period, values_from = .data$percentile) %>%
-  #   mutate(difference = .data$post - .data$pre) %>%
-  #   arrange(-abs(.data$difference)) %>%
-  #   write_csv("desc_percentile_change.csv")
-
-  # n_quantiles <- 4
-  # app_workers_data %>%
-  #   mutate(count_list = list(.data$count)) %>%
-  #   rowwise() %>%
-  #   mutate(percentile = mean(.data$count < unlist(.data$count_list))) %>%
-  #   arrange(.data$worker_id) %>%
-  #   select(-.data$count_list) %>%
-  #   mutate(quantile = round(.data$percentile * ({{n_quantiles}} - 1))) %>%
-  #   group_by(date, quantile) %>% count() %>%
-  #   write_csv("desc_percentile_change_month.csv") %>%
-  #   ggplot(aes(.data$date, n, fill = .data$quantile)) +
-  #   geom_bar(stat = "identity") +
-  #   geom_vline(xintercept = {{start_date}}, alpha = 0.3)
-  # ggsave(path(output_dir, "desc_percentile_change_month.png"))
-
   app_workers_data %>%
     group_by(period = if_else(.data$date <= {{start_date}}, "pre", "post"),
              .data$worker_id) %>%
@@ -168,12 +138,7 @@ generate_model_output <- function(
                color = .data$tertile, group = .data$tertile)) +
     geom_line() +
     geom_vline(xintercept = {{start_date}}, alpha = 0.3)
-  ggsave(path(output_dir, "desc_percentile_month_pre.png"))
-
-
-
-
-
+  ggsave(path(output_dir, "desc_percentile_ts.png"))
 
 
   ## CHW performance model
@@ -255,7 +220,7 @@ generate_model_output <- function(
         as.data.frame() %>% tibble::rownames_to_column("date"))) %>%
     unnest(.data$series) %>%
     mutate(date = lubridate::ymd(.data$date))
-  write_csv(chw_timeseries, path(output_dir, "chw_timeseries.csv"))
+  write_csv(chw_timeseries, path(output_dir, "model_worker_ts.csv"))
 
   top_chw_plots <- 10
 
@@ -265,10 +230,10 @@ generate_model_output <- function(
       plot(worker_mdl, "original")
       ggsave(path(output_dir, paste0("worker_", .x, ".png")))
       peer_data <- peer_plot(worker_mdl, target_worker_id = .x, period = period)
-      ggsave(path(output_dir, paste0("peers_", .x, ".png")))
+      ggsave(path(output_dir, paste0("worker_", .x, "_peers.png")))
       return(peer_data)
   }) %>% bind_rows()
-  write_csv(peer_data, path(output_dir, "chw_peers.csv"))
+  write_csv(peer_data, path(output_dir, "model_worker_peers.csv"))
 
   ### Performance groups over time
 
@@ -284,7 +249,7 @@ generate_model_output <- function(
     geom_errorbar(aes(ymin = .data$count_mean - 1.96 * .data$count_sd,
                       ymax = .data$count_mean + 1.96 * .data$count_sd),
                   alpha = 0.3)
-  ggsave(path(output_dir, "perf_groups_timeseries.png"))
+  ggsave(path(output_dir, "model_perf_groups_timeseries.png"))
 
   return(app_id)
 }
