@@ -120,19 +120,61 @@ generate_model_output <- function(
   ggsave(path(output_dir, "desc_count_dist.png"))
 
   ## Percentile of worker submits pre/post period
+  # app_workers_data %>%
+  #   group_by(period = if_else(.data$date <= start_date, "pre", "post"),
+  #            .data$worker_id) %>%
+  #   summarise(across(.data$count, mean)) %>%
+  #   mutate(count_list = list(.data$count)) %>%
+  #   rowwise() %>%
+  #   mutate(percentile = mean(.data$count < unlist(.data$count_list))) %>%
+  #   arrange(.data$worker_id) %>%
+  #   select(-.data$count_list, -.data$count) %>%
+  #   pivot_wider(names_from = .data$period, values_from = .data$percentile) %>%
+  #   mutate(difference = .data$post - .data$pre) %>%
+  #   arrange(-abs(.data$difference)) %>%
+  #   write_csv("desc_percentile_change.csv")
+
+  # n_quantiles <- 4
+  # app_workers_data %>%
+  #   mutate(count_list = list(.data$count)) %>%
+  #   rowwise() %>%
+  #   mutate(percentile = mean(.data$count < unlist(.data$count_list))) %>%
+  #   arrange(.data$worker_id) %>%
+  #   select(-.data$count_list) %>%
+  #   mutate(quantile = round(.data$percentile * ({{n_quantiles}} - 1))) %>%
+  #   group_by(date, quantile) %>% count() %>%
+  #   write_csv("desc_percentile_change_month.csv") %>%
+  #   ggplot(aes(.data$date, n, fill = .data$quantile)) +
+  #   geom_bar(stat = "identity") +
+  #   geom_vline(xintercept = {{start_date}}, alpha = 0.3)
+  # ggsave(path(output_dir, "desc_percentile_change_month.png"))
+
   app_workers_data %>%
-    group_by(period = if_else(.data$date <= start_date, "pre", "post"),
+    group_by(period = if_else(.data$date <= {{start_date}}, "pre", "post"),
              .data$worker_id) %>%
-    summarise(across(.data$count, mean)) %>%
-    mutate(count_list = list(.data$count)) %>%
-    rowwise() %>%
-    mutate(percentile = mean(.data$count < unlist(.data$count_list))) %>%
-    arrange(.data$worker_id) %>%
-    select(-.data$count_list, -.data$count) %>%
-    pivot_wider(names_from = .data$period, values_from = .data$percentile) %>%
-    mutate(difference = .data$post - .data$pre) %>%
-    arrange(-abs(.data$difference)) %>%
-    write_csv("desc_percentile_change.csv")
+    mutate(med_count = median(.data$count),
+           mean_count = mean(.data$count)) %>%
+    group_by(period) %>%
+    mutate(med_tertile = ntile(.data$med_count, 3),
+           mean_tertile = ntile(.data$mean_count, 3)) %>%
+    group_by(.data$date) %>%
+    mutate(month_percentile = percent_rank(.data$count),
+           tertile = factor(.data$med_tertile, levels = c(1, 2, 3))) %>%
+    group_by(.data$date, .data$tertile) %>%
+    summarise(mean_percentile = mean(.data$month_percentile),
+              .groups = "drop") %>%
+    write_csv(path(output_dir, "desc_percentile_ts.csv")) %>%
+    ggplot(aes(.data$date, .data$mean_percentile,
+               color = .data$tertile, group = .data$tertile)) +
+    geom_line() +
+    geom_vline(xintercept = {{start_date}}, alpha = 0.3)
+  ggsave(path(output_dir, "desc_percentile_month_pre.png"))
+
+
+
+
+
+
 
   ## CHW performance model
   model_summary <- tibble(
@@ -277,7 +319,7 @@ peer_plot <- function(worker_mdl, target_worker_id, max_peers = 10,
            inclusion_prob = if_else(.data$worker_id == "target", 1,
                                     .data$inclusion_prob),
            inclusion_rank = dense_rank(-.data$inclusion_prob)) %>%
-    mutate(target_worker_id = target_worker_id)
+    mutate(target_worker_id = {{target_worker_id}})
 
   peer_data %>%
     filter(.data$inclusion_rank %in% 1:max_peers &

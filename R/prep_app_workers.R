@@ -11,6 +11,7 @@ prep_app_workers <- function(
     mutate(active = sum(date <= start_date) >= min_pre_periods &
              sum(date > start_date) >= min_post_periods) %>%
     ungroup() %>%
+    # tidyr::nesting doesn't recognize .data
     tidyr::complete(tidyr::nesting(worker_id, active),
                     date = seq.Date(min(.data$date), max(.data$date),
                                     by = period),

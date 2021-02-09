@@ -24,15 +24,20 @@
 #' @param use_cache use saved data and models from previous run.
 #' @return app_id string for compeleted app worker analysis
 #' @examples
+#' set.seed(143)
 #' num_dates <- 90
 #' num_workers <- 30
-#' test_data <- merge(paste0("worker_", 1:num_workers),
-#'       seq(Sys.Date(), Sys.Date() + (num_dates - 1), by = 1),
-#'       colnames = c("foo", "bar"))
+#' test_data <- setNames(
+#'   merge(as.character(1:num_workers),
+#'         seq(Sys.Date(), Sys.Date() + (num_dates - 1), by = 1),
+#'         colnames = c("worker_id", "date")), c("worker_id", "date"))
 #' start_date <- Sys.Date() + floor(num_dates / 2)
 #' test_data$count <- sapply(1:(num_dates*num_workers),
 #'                           function(x) { rnorm(1, 50, 20) })
-#' test_data <- setNames(test_data, c("worker_id", "date", "count"))
+#' test_data[test_data$worker_id == "worker_1" &
+#'             test_data$date > start_date, "count"] <- 99
+#' test_data[test_data$worker_id == "worker_2" &
+#'             test_data$date > start_date, "count"] <- 1
 #' output_dir <- worker_analysis(
 #'   test_data, "test_analysis", start_date = start_date, period = "day",
 #'   sig_p = 0.05 / num_workers) # bonferroni correction
