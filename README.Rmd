@@ -25,7 +25,7 @@ The goal of chwork is to provide an analytics library for Community Health Worke
 
 You can install lhe development version of chwork from [GitHub](https://github.com/) with:
 
-```{r}
+```{r eval=FALSE, include=TRUE}
 # install.packages("devtools")
 devtools::install_github("roboton/chwork")
 ```

@@ -18,19 +18,6 @@ You can install lhe development version of chwork from
 ``` r
 # install.packages("devtools")
 devtools::install_github("roboton/chwork")
-#> Downloading GitHub repo roboton/chwork@HEAD
-#> 
-#>      checking for file ‘/tmp/Rtmpd7HcJB/remotesb1611799dac6/roboton-chwork-82f29c4/DESCRIPTION’ ...  ✓  checking for file ‘/tmp/Rtmpd7HcJB/remotesb1611799dac6/roboton-chwork-82f29c4/DESCRIPTION’
-#>   ─  preparing ‘chwork’:
-#>      checking DESCRIPTION meta-information ...  ✓  checking DESCRIPTION meta-information
-#>   ─  checking for LF line-endings in source and make files and shell scripts
-#>   ─  checking for empty or unneeded directories
-#>    Removed empty directory ‘chwork/test_analysis’
-#>   ─  building ‘chwork_0.0.0.9000.tar.gz’
-#>      
-#> 
-#> Installing package into '/tmp/RtmpczmXeJ/temp_libpatha96a75293b1e'
-#> (as 'lib' is unspecified)
 ```
 
 ## Example
@@ -94,6 +81,7 @@ output_dir <- worker_analysis(
 #> Saving 7 x 5 in image
 #> Saving 7 x 5 in image
 #> Saving 7 x 5 in image
+#> Saving 7 x 5 in image
 paste("worker analysis output in directory:", output_dir)
 #> [1] "worker analysis output in directory: test_analysis"
 ```
@@ -122,6 +110,8 @@ for(png in worker_pngs){
 
 ![model\_timeseries\_summary.png](test_analysis/output/model_timeseries_summary.png)
 
+![peers\_1.png](test_analysis/output/peers_1.png)
+
 ![peers\_12.png](test_analysis/output/peers_12.png)
 
 ![peers\_13.png](test_analysis/output/peers_13.png)
@@ -131,6 +121,8 @@ for(png in worker_pngs){
 ![peers\_17.png](test_analysis/output/peers_17.png)
 
 ![peers\_18.png](test_analysis/output/peers_18.png)
+
+![peers\_2.png](test_analysis/output/peers_2.png)
 
 ![peers\_24.png](test_analysis/output/peers_24.png)
 
@@ -144,6 +136,8 @@ for(png in worker_pngs){
 
 ![perf\_groups\_timeseries.png](test_analysis/output/perf_groups_timeseries.png)
 
+![worker\_1.png](test_analysis/output/worker_1.png)
+
 ![worker\_12.png](test_analysis/output/worker_12.png)
 
 ![worker\_13.png](test_analysis/output/worker_13.png)
@@ -153,6 +147,8 @@ for(png in worker_pngs){
 ![worker\_17.png](test_analysis/output/worker_17.png)
 
 ![worker\_18.png](test_analysis/output/worker_18.png)
+
+![worker\_2.png](test_analysis/output/worker_2.png)
 
 ![worker\_24.png](test_analysis/output/worker_24.png)
 
