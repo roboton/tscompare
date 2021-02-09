@@ -98,8 +98,6 @@ for(png in output_pngs){
 
 ![desc\_count\_dist.png](test_analysis/output/desc_count_dist.png)
 
-![desc\_percentile\_month\_pre.png](test_analysis/output/desc_percentile_month_pre.png)
-
 ![desc\_percentile\_ts.png](test_analysis/output/desc_percentile_ts.png)
 
 ![desc\_timeseries.png](test_analysis/output/desc_timeseries.png)
@@ -114,31 +112,7 @@ for(png in output_pngs){
 
 ![model\_timeseries\_summary.png](test_analysis/output/model_timeseries_summary.png)
 
-![peers\_1.png](test_analysis/output/peers_1.png)
-
-![peers\_12.png](test_analysis/output/peers_12.png)
-
-![peers\_13.png](test_analysis/output/peers_13.png)
-
-![peers\_14.png](test_analysis/output/peers_14.png)
-
-![peers\_17.png](test_analysis/output/peers_17.png)
-
-![peers\_18.png](test_analysis/output/peers_18.png)
-
-![peers\_2.png](test_analysis/output/peers_2.png)
-
-![peers\_24.png](test_analysis/output/peers_24.png)
-
-![peers\_27.png](test_analysis/output/peers_27.png)
-
-![peers\_30.png](test_analysis/output/peers_30.png)
-
-![peers\_4.png](test_analysis/output/peers_4.png)
-
-![peers\_6.png](test_analysis/output/peers_6.png)
-
-![perf\_groups\_timeseries.png](test_analysis/output/perf_groups_timeseries.png)
+![worker\_1\_peers.png](test_analysis/output/worker_1_peers.png)
 
 ![worker\_1.png](test_analysis/output/worker_1.png)
 
@@ -161,6 +135,8 @@ for(png in output_pngs){
 ![worker\_18\_peers.png](test_analysis/output/worker_18_peers.png)
 
 ![worker\_18.png](test_analysis/output/worker_18.png)
+
+![worker\_2\_peers.png](test_analysis/output/worker_2_peers.png)
 
 ![worker\_2.png](test_analysis/output/worker_2.png)
 

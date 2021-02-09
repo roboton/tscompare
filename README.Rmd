@@ -22,7 +22,6 @@ The goal of chwork is to provide an analytics library for Community Health Worke
 
 ## Installation
 
-
 You can install lhe development version of chwork from [GitHub](https://github.com/) with:
 
 ```{r eval=FALSE, include=TRUE}
