@@ -27,6 +27,7 @@
 #' set.seed(143)
 #' num_dates <- 90
 #' num_workers <- 30
+#' # generate synthetic data
 #' test_data <- setNames(
 #'   merge(as.character(1:num_workers),
 #'         seq(Sys.Date(), Sys.Date() + (num_dates - 1), by = 1),
@@ -34,9 +35,10 @@
 #' start_date <- Sys.Date() + floor(num_dates / 2)
 #' test_data$count <- sapply(1:(num_dates*num_workers),
 #'                           function(x) { rnorm(1, 50, 20) })
-#' test_data[test_data$worker_id == "worker_1" &
+#  # worker anomalies
+#' test_data[test_data$worker_id == "1" &
 #'             test_data$date > start_date, "count"] <- 99
-#' test_data[test_data$worker_id == "worker_2" &
+#' test_data[test_data$worker_id == "2" &
 #'             test_data$date > start_date, "count"] <- 1
 #' output_dir <- worker_analysis(
 #'   test_data, "test_analysis", start_date = start_date, period = "day",
