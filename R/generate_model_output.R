@@ -1,6 +1,7 @@
 #' @import dplyr
 #' @import ggplot2
 #' @import tidyr
+#' @import lubridate
 #' @importFrom fs path
 #' @importFrom readr write_csv
 #' @importFrom graphics plot
@@ -9,6 +10,7 @@
 #' @importFrom stats median sd
 #' @importFrom forcats fct_rev
 #' @importFrom bsts SuggestBurn
+#' @importFrom stringr str_sub
 generate_model_output <- function(
   app_workers_model, app_workers_data, app_id, sig_p, period = "day") {
   # create output directory
@@ -119,6 +121,7 @@ generate_model_output <- function(
     scale_x_log10()
   ggsave(path(output_dir, "desc_count_dist.png"))
 
+  ## Percentile/count groups change in worker submits pre/post period
   app_workers_data %>%
     group_by(period = if_else(.data$date <= {{start_date}}, "pre", "post"),
              .data$worker_id) %>%
@@ -133,13 +136,12 @@ generate_model_output <- function(
     group_by(.data$date, .data$tertile) %>%
     summarise(mean_percentile = mean(.data$month_percentile),
               .groups = "drop") %>%
-    write_csv(path(output_dir, "desc_percentile_ts.csv")) %>%
+    write_csv(path(output_dir, "desc_percentile_timeseries.csv")) %>%
     ggplot(aes(.data$date, .data$mean_percentile,
                color = .data$tertile, group = .data$tertile)) +
     geom_line() +
     geom_vline(xintercept = {{start_date}}, alpha = 0.3)
-  ggsave(path(output_dir, "desc_percentile_ts.png"))
-
+  ggsave(path(output_dir, "desc_percentile_timeseries.png"))
 
   ## CHW performance model
   model_summary <- tibble(
@@ -180,7 +182,7 @@ generate_model_output <- function(
                                   TRUE ~ "average")) %>%
     select(.data$date, .data$app_id, .data$point_perf) %>%
     mutate(date = lubridate::ymd(.data$date)) %>%
-    filter(.data$date >= start_date) %>%
+    filter(.data$date >= {{start_date}}) %>%
     group_by(.data$date , .data$app_id, .data$point_perf) %>%
     summarise(workers = n(), .groups = "drop") %>%
     arrange(.data$app_id, .data$date)
@@ -208,7 +210,6 @@ generate_model_output <- function(
     geom_bar(stat = "identity") +
     theme(legend.position = "none") +
     ggtitle("Cumulative performance summary")
-
   ggsave(path(output_dir, "model_cumulative_summary.png"))
 
   ### CHW-specific stats
@@ -220,7 +221,7 @@ generate_model_output <- function(
         as.data.frame() %>% tibble::rownames_to_column("date"))) %>%
     unnest(.data$series) %>%
     mutate(date = lubridate::ymd(.data$date))
-  write_csv(chw_timeseries, path(output_dir, "model_worker_ts.csv"))
+  write_csv(chw_timeseries, path(output_dir, "model_worker_timeseries.csv"))
 
   top_chw_plots <- 10
 
@@ -250,6 +251,111 @@ generate_model_output <- function(
                       ymax = .data$count_mean + 1.96 * .data$count_sd),
                   alpha = 0.3)
   ggsave(path(output_dir, "model_perf_groups_timeseries.png"))
+
+  ### Anomaly prediction bake-off
+
+  ## Percentile/count change in worker submits pre/post period
+  worker_rank <- app_workers_data %>%
+    select(-active) %>%
+    # fill in missing months with zeroes
+    pivot_wider(names_from = .data$date, values_from = .data$count,
+                values_fill = 0) %>%
+    pivot_longer(cols = -.data$worker_id,
+                 names_to = "date", values_to = "count") %>%
+    mutate(date = lubridate::ymd(date)) %>%
+    group_by(.data$worker_id) %>%
+    arrange(.data$date) %>%
+    # drop leading zeroes (replace with NA)
+    mutate(count = if_else(cumsum(.data$count) == 0, NA_real_, .data$count)) %>%
+    # drop NA months (leading zeroes)
+    ungroup() %>%  filter(!is.na(.data$count)) %>%
+    # loess pre-post stat
+    group_by(.data$worker_id) %>% arrange(.data$worker_id, .data$date) %>%
+    mutate(count_smooth = stats::lowess(.data$count, f = 1/3)$y) %>%
+    # agg pre/post stats
+    group_by(period = if_else(.data$date < {{start_date}}, "pre", "post"),
+             .data$worker_id) %>%
+    arrange(.data$period, .data$worker_id, .data$date) %>%
+    summarise(count_mean = mean(.data$count),
+              count_smooth = unique(if_else(.data$period == "pre",
+                                            last(.data$count_smooth),
+                                            nth(.data$count_smooth, 2))),
+              num_periods = n(),
+              data = list(tibble(date, count)),
+              .groups = "drop_last") %>%
+    # calculate percentile differences in pre/post stats
+    mutate(count_mean_pctile = percent_rank(.data$count_mean),
+           count_smooth_pctile = percent_rank(.data$count_smooth),
+           periods_pctile = percent_rank(.data$num_periods)) %>%
+    pivot_wider(names_from = .data$period,
+                values_from = c(.data$count_mean, .data$count_smooth,
+                                .data$num_periods, .data$count_mean_pctile,
+                                .data$count_smooth_pctile, .data$periods_pctile,
+                                .data$data)) %>%
+    # at least one pre-period value
+    filter(.data$num_periods_pre > 0) %>%
+    rowwise() %>%
+    mutate(count_mean_diff = .data$count_mean_post - .data$count_mean_pre,
+           count_smooth_diff = .data$count_smooth_post - .data$count_smooth_pre,
+           # num_periods_diff = num_periods_post - num_periods_pre,
+           count_mean_pctile_diff = .data$count_mean_pctile_post -
+             .data$count_mean_pctile_pre,
+           count_smooth_pctile_diff = .data$count_smooth_pctile_post -
+             .data$count_smooth_pctile_pre,
+           # periods_pctile_diff = periods_pctile_post - periods_pctile_pre,
+           # periods_rank_diff = periods_pctile_post - periods_pctile_pre,
+           data = list(bind_rows(data_pre, data_post))) %>%
+    ungroup() %>%
+    mutate(count_mean_pctile_rank = rank(-abs(.data$count_mean_pctile_diff)),
+           count_smooth_rank = rank(-abs(.data$count_smooth_diff)),
+           count_smooth_pctile_rank = rank(-abs(.data$count_smooth_pctile_diff)),
+           count_mean_rank = rank(-abs(.data$count_mean_diff))) %>%
+    select(.data$worker_id, .data$count_mean_diff, .data$count_mean_pctile_diff,
+           .data$count_mean_pctile_rank, .data$count_mean_rank,
+           .data$count_smooth_rank, .data$count_smooth_pctile_rank,
+           .data$data) %>%
+    arrange(.data$count_mean_pctile_rank + .data$count_mean_rank +
+              .data$count_smooth_rank + .data$count_smooth_pctile_rank) %>%
+    mutate(joined_rank = paste0(str_sub(.data$worker_id, 1, 5),
+                                " mean_pctile: ", .data$count_mean_pctile_rank,
+                                " mean: ", .data$count_mean_rank,
+                                " smooth: ", .data$count_smooth_rank,
+                                " smooth_pctile: ",
+                                .data$count_smooth_pctile_rank)) %>%
+    unnest(.data$data) %>%
+    write_csv(path(output_dir, "desc_worker_rank.csv"))
+
+  worker_rank %>%
+    filter(.data$count_mean_pctile_rank <= 5 |
+             .data$count_mean_rank <= 5 |
+             .data$count_smooth_rank <= 5 |
+             .data$count_smooth_pctile_rank <= 5) %>%
+    ggplot(aes(.data$date, .data$count, group = .data$joined_rank)) +
+    geom_line() + facet_wrap(~ .data$joined_rank, scales = "free_y", ncol = 2) +
+    geom_vline(xintercept = {{start_date}}, lty = 2, color = "grey")
+  ggsave(path(output_dir, "desc_worker_rank.png"), height = 8)
+
+  worker_rank %>%
+    left_join({{model_summary}} %>%
+                mutate(chwork_rank = rank(.data$p_Cumulative)) %>%
+                select(.data$worker_id, .data$chwork_rank),
+              by = "worker_id") %>%
+    select(.data$worker_id, .data$date, .data$count, contains("rank"),
+           -.data$joined_rank) %>%
+    write_csv(path(output_dir, "top_anomalies.csv")) %>%
+    filter(.data$count_mean_pctile_rank <= {{top_chw_plots}} |
+             .data$count_mean_rank <= {{top_chw_plots}} |
+             .data$count_smooth_rank <= {{top_chw_plots}} |
+             .data$count_smooth_pctile_rank <= {{top_chw_plots}} |
+             .data$chwork_rank <= {{top_chw_plots}}) %>%
+    mutate(title = paste(str_sub(.data$worker_id, 1, 5),
+                         .data$chwork_rank, .data$count_mean_rank,
+                         .data$count_mean_pctile_rank, .data$count_smooth_rank,
+                         .data$count_smooth_pctile_rank)) %>%
+    ggplot(aes(.data$date, .data$count, group = .data$title)) + geom_line() +
+    facet_wrap(~ .data$title, scales = "free_y") +
+    geom_vline(xintercept = {{start_date}}, lty = 2, color = "grey")
+  ggsave(path(output_dir, "top_anomalies.png"), height = 8)
 
   return(app_id)
 }
