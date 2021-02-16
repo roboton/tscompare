@@ -133,6 +133,5 @@ worker_analysis <- function(app_workers_data,
   }
 
   # run output
-  generate_model_output(app_workers_model, app_workers_data, app_id, sig_p,
-                        period = period)
+  generate_output(app_workers_model, app_workers_data, app_id, sig_p)
 }
