@@ -42,7 +42,6 @@ desc_summary_count <- function(app_workers_data, start_date, output_dir) {
                                      str_extract(.data$name, "(^[^_]*)"))) %>%
     ggplot(aes(.data$date, .data$value, fill = .data$name)) +
     geom_bar(stat = "identity", position = "dodge") +
-    geom_point(aes(.data$date, )) +
     facet_wrap(~ .data$type, scales = "free_y", ncol = 1) +
     theme(legend.position = "bottom", legend.title = element_blank()) +
     scale_fill_discrete(breaks = c("workers_active_new", "workers_active_old",
@@ -116,7 +115,7 @@ model_summary <- function(app_workers_model, output_dir) {
                .data$p_Cumulative, .data$p_Average)
     })) %>%
     unnest(.data$worker_perf) %>%
-    mutate(performance = case_when(
+    mutate(deviance = case_when(
       .data$RelEffect_Cumulative > 0 & .data$p_Cumulative < sig_p ~ "over",
       .data$RelEffect_Cumulative < 0 & .data$p_Cumulative < sig_p ~ "under",
       TRUE ~ "average")) %>%
@@ -124,9 +123,9 @@ model_summary <- function(app_workers_model, output_dir) {
     write_csv(path(output_dir, "model_summary.csv"))
 
   model_summary %>%
-    group_by(.data$performance) %>%
+    group_by(.data$deviance) %>%
     summarize(workers = n(), .groups = "drop") %>%
-    ggplot(aes(.data$performance, .data$workers, fill = .data$performance)) +
+    ggplot(aes(.data$deviance, .data$workers, fill = .data$deviance)) +
     geom_bar(stat = "identity") +
     theme(legend.position = "none") +
     ggtitle("Cumulative model summary")
@@ -158,8 +157,7 @@ model_summary_timeseries <- function(app_workers_model, output_dir) {
     ggplot(aes(.data$date, .data$workers, fill = .data$point_perf,
                color = .data$point_perf)) +
     geom_bar(stat = "identity") +
-    theme(legend.position = "bottom", legend.title = element_blank()) +
-    ggtitle("Performance summary over time")
+    theme(legend.position = "bottom", legend.title = element_blank())
   ggsave(path(output_dir, "model_timeseries_summary.png"))
   return(timeseries_summary)
 }
@@ -179,11 +177,11 @@ model_group_timeseries <- function(app_workers_model, output_dir) {
     select(.data$worker_id, .data$date, count = .data$response) %>%
     left_join(
       model_summary %>%
-        select(.data$worker_id, .data$performance), by = "worker_id") %>%
-    group_by(.data$date, .data$performance) %>%
+        select(.data$worker_id, .data$deviance), by = "worker_id") %>%
+    group_by(.data$date, .data$deviance) %>%
     summarise(across(.data$count, list(mean = mean, sd = sd))) %>%
-    ggplot(aes(.data$date, .data$count_mean, color = .data$performance)) +
-    geom_line() + geom_point() +
+    ggplot(aes(.data$date, .data$count_mean, color = .data$deviance)) +
+    geom_line() +
     geom_vline(xintercept = {{start_date}}, lty = 2, color = "grey")
     # geom_errorbar(aes(ymin = .data$count_mean - 1.96 * .data$count_sd,
     #                   ymax = .data$count_mean + 1.96 * .data$count_sd),
@@ -351,7 +349,8 @@ model_worker_rank <- function(app_workers_model, app_workers_data, output_dir,
     ggplot(aes(.data$date, .data$count, group = .data$title)) + geom_line() +
     facet_wrap(~ .data$title, scales = "free_y", ncol = 3) +
     geom_vline(xintercept = {{start_date}}, lty = 2, color = "grey")
-  ggsave(path(output_dir, "model_worker_rank.png"), height = 2 * top_workers)
+  ggsave(path(output_dir, "model_worker_rank.png"), width = 8,
+         height = 2 * top_workers)
 }
 
 generate_output <- function(app_workers_model, app_workers_data, app_id, sig_p,
