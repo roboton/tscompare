@@ -131,7 +131,6 @@ worker_analysis <- function(app_workers_data,
       saveRDS(app_workers_model, model_file)
     }
   }
-
-  # run output
+  print(model_file)
   generate_output(app_workers_model, app_workers_data, app_id, sig_p)
 }
