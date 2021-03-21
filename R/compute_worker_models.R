@@ -38,7 +38,8 @@ compute_worker_models <- function(app_workers_data, start_date, period,
       worker_dat, pre_period, post_period, alpha = sig_p,
       # monthly seasonal component
       model.args = list(nseasons = num_seasons,
-                        season.duration = season_duration))
+                        season.duration = season_duration,
+                        standardize.data = FALSE))
     return(worker_mdl)
   })
 

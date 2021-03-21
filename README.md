@@ -37,32 +37,19 @@ test_data <- setNames(
         colnames = c("worker_id", "date")), c("worker_id", "date"))
 start_date <- Sys.Date() + floor(num_dates / 2)
 test_data$count <- sapply(1:(num_dates*num_workers),
-                          function(x) { rnorm(1, 50, 20) })
+                          function(x) { rpois(1, 50) })
 # worker anomalies
-test_data[test_data$worker_id == "worker_1" &
-            test_data$date > start_date, "count"] <- 99
-test_data[test_data$worker_id == "worker_2" &
+test_data[test_data$worker_id == "1" &
+            test_data$date > start_date, "count"] <- 100
+test_data[test_data$worker_id == "2" &
             test_data$date > start_date, "count"] <- 1
 
 output_dir <- worker_analysis(
   test_data, "test_analysis", start_date = start_date, period = "day",
-  sig_p = 0.05 / num_workers) # bonferroni correction
+  sig_p = 0.01)
 #> Warning in worker_analysis(test_data, "test_analysis", start_date =
 #> start_date, : computing worker models for app_id: test_analysis
-#> Saving 7 x 5 in image
-#> Saving 7 x 5 in image
-#> Saving 7 x 5 in image
-#> Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning -
-#> Inf
-#> Saving 7 x 5 in image
-#> Warning in self$trans$transform(x): NaNs produced
-#> Warning: Transformation introduced infinite values in continuous x-axis
-#> Warning: Removed 14 rows containing non-finite values (stat_bin).
-#> Saving 7 x 5 in image
-#> Saving 7 x 5 in image
-#> Saving 7 x 5 in image
-#> Saving 7 x 5 in image
-#> Saving 7 x 5 in image
+#> test_analysis/app_workers_model.rds
 #> Saving 7 x 5 in image
 #> Saving 7 x 5 in image
 #> Saving 7 x 5 in image
@@ -96,66 +83,36 @@ for(png in output_pngs){
 }
 ```
 
-![desc\_count\_dist.png](test_analysis/output/desc_count_dist.png)
+![desc\_quantile\_timeseries.png](test_analysis/output/desc_quantile_timeseries.png)
 
-![desc\_percentile\_ts.png](test_analysis/output/desc_percentile_ts.png)
+![desc\_summary\_count.png](test_analysis/output/desc_summary_count.png)
 
-![desc\_timeseries.png](test_analysis/output/desc_timeseries.png)
-
-![desc\_variance\_boxplot.png](test_analysis/output/desc_variance_boxplot.png)
-
-![desc\_variance\_timeseries.png](test_analysis/output/desc_variance_timeseries.png)
+![desc\_summary\_stats.png](test_analysis/output/desc_summary_stats.png)
 
 ![model\_cumulative\_summary.png](test_analysis/output/model_cumulative_summary.png)
 
-![model\_perf\_groups\_timeseries.png](test_analysis/output/model_perf_groups_timeseries.png)
+![model\_group\_timeseries.png](test_analysis/output/model_group_timeseries.png)
 
 ![model\_timeseries\_summary.png](test_analysis/output/model_timeseries_summary.png)
 
-![worker\_1\_peers.png](test_analysis/output/worker_1_peers.png)
+![model\_worker\_rank.png](test_analysis/output/model_worker_rank.png)
+
+![peers\_1.png](test_analysis/output/peers_1.png)
+
+![peers\_2.png](test_analysis/output/peers_2.png)
+
+![peers\_24.png](test_analysis/output/peers_24.png)
+
+![peers\_26.png](test_analysis/output/peers_26.png)
+
+![peers\_29.png](test_analysis/output/peers_29.png)
 
 ![worker\_1.png](test_analysis/output/worker_1.png)
 
-![worker\_12\_peers.png](test_analysis/output/worker_12_peers.png)
-
-![worker\_12.png](test_analysis/output/worker_12.png)
-
-![worker\_13\_peers.png](test_analysis/output/worker_13_peers.png)
-
-![worker\_13.png](test_analysis/output/worker_13.png)
-
-![worker\_14\_peers.png](test_analysis/output/worker_14_peers.png)
-
-![worker\_14.png](test_analysis/output/worker_14.png)
-
-![worker\_17\_peers.png](test_analysis/output/worker_17_peers.png)
-
-![worker\_17.png](test_analysis/output/worker_17.png)
-
-![worker\_18\_peers.png](test_analysis/output/worker_18_peers.png)
-
-![worker\_18.png](test_analysis/output/worker_18.png)
-
-![worker\_2\_peers.png](test_analysis/output/worker_2_peers.png)
-
 ![worker\_2.png](test_analysis/output/worker_2.png)
-
-![worker\_24\_peers.png](test_analysis/output/worker_24_peers.png)
 
 ![worker\_24.png](test_analysis/output/worker_24.png)
 
-![worker\_27\_peers.png](test_analysis/output/worker_27_peers.png)
+![worker\_26.png](test_analysis/output/worker_26.png)
 
-![worker\_27.png](test_analysis/output/worker_27.png)
-
-![worker\_30\_peers.png](test_analysis/output/worker_30_peers.png)
-
-![worker\_30.png](test_analysis/output/worker_30.png)
-
-![worker\_4\_peers.png](test_analysis/output/worker_4_peers.png)
-
-![worker\_4.png](test_analysis/output/worker_4.png)
-
-![worker\_6\_peers.png](test_analysis/output/worker_6_peers.png)
-
-![worker\_6.png](test_analysis/output/worker_6.png)
+![worker\_29.png](test_analysis/output/worker_29.png)
