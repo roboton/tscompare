@@ -24,7 +24,8 @@ desc_summary_count <- function(app_workers_data, start_date, output_dir) {
     # sum stats by date
     group_by(date) %>%
     summarise(across(.data$count, list(mean = mean, total = sum)),
-              workers_active = list(.data$worker_id), .groups = "drop") %>%
+              workers_active = list(unique(.data$worker_id[.data$count > 0])),
+              .groups = "drop") %>%
     mutate(workers_total =
              accumulate(.data$workers_active,
                         ~ unique(c(unlist(.x), unlist(.y))))) %>%
@@ -34,7 +35,7 @@ desc_summary_count <- function(app_workers_data, start_date, output_dir) {
            workers_active_old = .data$workers_active -
              .data$workers_active_new) %>%
     pivot_longer(-.data$date) %>%
-    write_csv(path(output_dir, "desc_summary_count.csv")) %>%
+    write_csv(fs::path(output_dir, "desc_summary_count.csv")) %>%
     filter(str_detect(.data$name, "^workers_(in)?active_") |
              .data$name == "count_total") %>%
     filter(!is.na(.data$value)) %>%
@@ -47,7 +48,7 @@ desc_summary_count <- function(app_workers_data, start_date, output_dir) {
     scale_fill_discrete(breaks = c("workers_active_new", "workers_active_old",
                                    "workers_inactive_old")) +
     geom_vline(xintercept = {{start_date}}, lty = 2, color = "grey")
-  ggsave(path(output_dir, "desc_summary_count.png"))
+  ggsave(fs::path(output_dir, "desc_summary_count.png"))
 }
 
 desc_summary_stats <- function(app_workers_data, start_date, output_dir) {
@@ -61,12 +62,12 @@ desc_summary_stats <- function(app_workers_data, start_date, output_dir) {
     summarise(across(c(.data$count, .data$count_log10),
                      list(mean =  mean, sd = sd, median = median))) %>%
     pivot_longer(-.data$date) %>%
-    write_csv(path(output_dir, "desc_summary_stats.csv")) %>%
+    write_csv(fs::path(output_dir, "desc_summary_stats.csv")) %>%
     ggplot(aes(.data$date, .data$value, group = .data$name)) +
     facet_wrap(~ .data$name, scales = "free_y") +
     geom_line() +
     geom_vline(xintercept = {{start_date}}, lty = 2, color = "grey")
-  ggsave(path(output_dir, "desc_summary_stats.png"))
+  ggsave(fs::path(output_dir, "desc_summary_stats.png"))
 }
 
 desc_quantile_timeseries <- function(app_workers_data, start_date, output_dir,
@@ -91,14 +92,14 @@ desc_quantile_timeseries <- function(app_workers_data, start_date, output_dir,
     group_by(.data$date, .data$quantile) %>%
     summarise(mean_percentile = mean(.data$month_percentile),
               .groups = "drop") %>%
-    write_csv(path(output_dir, "desc_quantile_timeseries.csv"))
+    write_csv(fs::path(output_dir, "desc_quantile_timeseries.csv"))
 
   desc_quantile_ts %>%
     ggplot(aes(.data$date, .data$mean_percentile,
                color = .data$quantile, group = .data$quantile)) +
     geom_line() +
     geom_vline(xintercept = {{start_date}}, alpha = 0.3)
-  ggsave(path(output_dir, "desc_quantile_timeseries.png"))
+  ggsave(fs::path(output_dir, "desc_quantile_timeseries.png"))
   return(desc_quantile_ts)
 }
 
@@ -119,11 +120,11 @@ model_summary <- function(app_workers_model, output_dir) {
     })) %>%
     unnest(.data$worker_perf) %>%
     mutate(deviance = case_when(
-      .data$RelEffect_Cumulative > 0 & .data$p_Cumulative < sig_p ~ "over",
-      .data$RelEffect_Cumulative < 0 & .data$p_Cumulative < sig_p ~ "under",
+      .data$AbsEffect_Cumulative > 0 & .data$p_Cumulative < sig_p ~ "over",
+      .data$AbsEffect_Cumulative < 0 & .data$p_Cumulative < sig_p ~ "under",
       TRUE ~ "average")) %>%
     arrange(.data$p_Cumulative) %>%
-    write_csv(path(output_dir, "model_summary.csv"))
+    write_csv(fs::path(output_dir, "model_summary.csv"))
 
   model_summary %>%
     group_by(.data$deviance) %>%
@@ -132,7 +133,7 @@ model_summary <- function(app_workers_model, output_dir) {
     geom_bar(stat = "identity") +
     theme(legend.position = "none") +
     ggtitle("Cumulative model summary")
-  ggsave(path(output_dir, "model_cumulative_summary.png"))
+  ggsave(fs::path(output_dir, "model_cumulative_summary.png"))
 
   return(model_summary)
 }
@@ -140,7 +141,7 @@ model_summary <- function(app_workers_model, output_dir) {
 model_summary_timeseries <- function(app_workers_model, output_dir) {
   start_date <- max(app_workers_model[[1]]$model$pre.period)
   timeseries_summary <- tibble(worker_id = names(app_workers_model),
-         app_id = path_dir(output_dir),
+         app_id = fs::path_dir(output_dir),
          series = purrr::map(app_workers_model, ~ purrr::pluck(.x, "series") %>%
                                as.data.frame() %>%
                                tibble::rownames_to_column("date"))) %>%
@@ -154,14 +155,14 @@ model_summary_timeseries <- function(app_workers_model, output_dir) {
     group_by(.data$date , .data$app_id, .data$point_perf) %>%
     summarise(workers = n(), .groups = "drop") %>%
     arrange(.data$app_id, .data$date) %>%
-    write_csv(path(output_dir, "model_summary_timeseries.csv"))
+    write_csv(fs::path(output_dir, "model_summary_timeseries.csv"))
 
   timeseries_summary %>%
     ggplot(aes(.data$date, .data$workers, fill = .data$point_perf,
                color = .data$point_perf)) +
     geom_bar(stat = "identity") +
     theme(legend.position = "bottom", legend.title = element_blank())
-  ggsave(path(output_dir, "model_timeseries_summary.png"))
+  ggsave(fs::path(output_dir, "model_timeseries_summary.png"))
   return(timeseries_summary)
 }
 
@@ -175,7 +176,7 @@ model_group_timeseries <- function(app_workers_model, output_dir) {
         as.data.frame() %>% tibble::rownames_to_column("date"))) %>%
     unnest(.data$series) %>%
     mutate(date = lubridate::ymd(.data$date)) %>%
-    write_csv(path(output_dir, "model_group_timeseries.csv"))
+    write_csv(fs::path(output_dir, "model_group_timeseries.csv"))
   group_timeseries %>%
     select(.data$worker_id, .data$date, count = .data$response) %>%
     left_join(
@@ -189,11 +190,11 @@ model_group_timeseries <- function(app_workers_model, output_dir) {
     # geom_errorbar(aes(ymin = .data$count_mean - 1.96 * .data$count_sd,
     #                   ymax = .data$count_mean + 1.96 * .data$count_sd),
     #               alpha = 0.3)
-  ggsave(path(output_dir, "model_group_timeseries.png"))
+  ggsave(fs::path(output_dir, "model_group_timeseries.png"))
   return(group_timeseries)
 }
 
-model_worker_peers <- function(app_workers_model, output_dir, top_workers = 5) {
+model_worker_peers <- function(app_workers_model, output_dir, top_workers = 10) {
   start_date <- max(app_workers_model[[1]]$model$pre.period)
   model_summary <- model_summary(app_workers_model, output_dir)
   purrr::map_dfr(
@@ -201,13 +202,13 @@ model_worker_peers <- function(app_workers_model, output_dir, top_workers = 5) {
       worker_mdl <- app_workers_model[[paste0("worker_", .x)]]
       # worker plots
       plot(worker_mdl, "original")
-      ggsave(path(output_dir, paste0("worker_", .x, ".png")))
+      ggsave(fs::path(output_dir, paste0("worker_", .x, ".png")))
       # peer plots
       peer_data <- peer_plot(worker_mdl, target_worker_id = .x)
-      ggsave(path(output_dir, paste0("peers_", .x, ".png")))
+      ggsave(fs::path(output_dir, paste0("peers_", .x, ".png")))
       return(peer_data)
       }) %>% bind_rows() %>%
-    write_csv(path(output_dir, "model_worker_peers.csv")) %>%
+    write_csv(fs::path(output_dir, "model_worker_peers.csv")) %>%
     return()
 }
 
@@ -337,7 +338,7 @@ model_worker_rank <- function(app_workers_model, app_workers_data, output_dir,
               by = "worker_id") %>%
     select(.data$worker_id, .data$date, .data$count, contains("rank"),
            -.data$joined_rank) %>%
-    write_csv(path(output_dir, "model_worker_rank.csv"))
+    write_csv(fs::path(output_dir, "model_worker_rank.csv"))
 
   worker_rank %>%
     filter(.data$count_mean_pctile_rank <= {{top_workers}} |
@@ -352,14 +353,14 @@ model_worker_rank <- function(app_workers_model, app_workers_data, output_dir,
     ggplot(aes(.data$date, .data$count, group = .data$title)) + geom_line() +
     facet_wrap(~ .data$title, scales = "free_y", ncol = 3) +
     geom_vline(xintercept = {{start_date}}, lty = 2, color = "grey")
-  ggsave(path(output_dir, "model_worker_rank.png"), width = 8,
+  ggsave(fs::path(output_dir, "model_worker_rank.png"), width = 8,
          height = 2 * top_workers)
 }
 
 generate_output <- function(app_workers_model, app_workers_data, app_id, sig_p,
                             top_workers = 5) {
   # setup
-  output_dir <- path(app_id, "output")
+  output_dir <- fs::path(app_id, "output")
   fs::dir_create(output_dir)
   start_date <- max(app_workers_model[[1]]$model$pre.period)
 
