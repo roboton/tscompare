@@ -194,18 +194,22 @@ model_group_timeseries <- function(app_workers_model, output_dir) {
   return(group_timeseries)
 }
 
-model_worker_peers <- function(app_workers_model, output_dir, top_workers = 10) {
+model_worker_peers <- function(app_workers_model, output_dir,
+                               peer_plots = FALSE) {
   start_date <- max(app_workers_model[[1]]$model$pre.period)
   model_summary <- model_summary(app_workers_model, output_dir)
   purrr::map_dfr(
-    head(model_summary$worker_id, top_workers), function(.x) {
+    pull(filter(model_summary, .data$deviance != "average"),
+         .data$worker_id), function(.x) {
       worker_mdl <- app_workers_model[[paste0("worker_", .x)]]
       # worker plots
       plot(worker_mdl, "original")
       ggsave(fs::path(output_dir, paste0("worker_", .x, ".png")))
       # peer plots
-      peer_data <- peer_plot(worker_mdl, target_worker_id = .x)
-      ggsave(fs::path(output_dir, paste0("peers_", .x, ".png")))
+      if (peer_plots) {
+        peer_data <- peer_plot(worker_mdl, target_worker_id = .x)
+        ggsave(fs::path(output_dir, paste0("peers_", .x, ".png")))
+      }
       return(peer_data)
       }) %>% bind_rows() %>%
     write_csv(fs::path(output_dir, "model_worker_peers.csv")) %>%
