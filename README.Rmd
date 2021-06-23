@@ -18,7 +18,7 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of tscompare is to provide an analytics library for Community Health Worker related data.
+The goal of tscompare is to provide an analytics library for comparing multiple timeseries.
 
 ## Installation
 
@@ -31,31 +31,31 @@ devtools::install_github("roboton/tscompare")
 
 ## Example
 
-This is a basic example with simulated data with two worker anomalies (one over and one under).
+This is a basic example with simulated data with two timeseries anomalies (one over and one under).
 
 ```{r example}
 library(tscompare)
 set.seed(143)
 num_dates <- 90
-num_workers <- 30
+num_timeseries <- 30
 # generate synthetic data
 test_data <- setNames(
-  merge(as.character(1:num_workers),
+  merge(as.character(1:num_timeseries),
         seq(Sys.Date(), Sys.Date() + (num_dates - 1), by = 1),
-        colnames = c("worker_id", "date")), c("worker_id", "date"))
+        colnames = c("ts_id", "date")), c("ts_id", "date"))
 start_date <- Sys.Date() + floor(num_dates / 2)
-test_data$count <- sapply(1:(num_dates*num_workers),
+test_data$count <- sapply(1:(num_dates*num_timeseries),
                           function(x) { rpois(1, 50) })
-# worker anomalies
-test_data[test_data$worker_id == "1" &
+# ts anomalies
+test_data[test_data$ts_id == "1" &
             test_data$date > start_date, "count"] <- 100
-test_data[test_data$worker_id == "2" &
+test_data[test_data$ts_id == "2" &
             test_data$date > start_date, "count"] <- 1
 
-output_dir <- worker_analysis(
+output_dir <- ts_analysis(
   test_data, "test_analysis", start_date = start_date, period = "day",
   sig_p = 0.01)
-paste("worker analysis output in directory:", output_dir)
+paste("timeseries analysis output in directory:", output_dir)
 ```
 
 ```{r, results="asis"}

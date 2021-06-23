@@ -6,8 +6,8 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of tscompare is to provide an analytics library for Community
-Health Worker related data.
+The goal of tscompare is to provide an analytics library for comparing
+multiple timeseries.
 
 ## Installation
 
@@ -21,34 +21,34 @@ devtools::install_github("roboton/tscompare")
 
 ## Example
 
-This is a basic example with simulated data with two worker anomalies
-(one over and one under).
+This is a basic example with simulated data with two timeseries
+anomalies (one over and one under).
 
 ``` r
 library(tscompare)
 set.seed(143)
 num_dates <- 90
-num_workers <- 30
+num_timeseries <- 30
 # generate synthetic data
 test_data <- setNames(
-  merge(as.character(1:num_workers),
+  merge(as.character(1:num_timeseries),
         seq(Sys.Date(), Sys.Date() + (num_dates - 1), by = 1),
-        colnames = c("worker_id", "date")), c("worker_id", "date"))
+        colnames = c("ts_id", "date")), c("ts_id", "date"))
 start_date <- Sys.Date() + floor(num_dates / 2)
-test_data$count <- sapply(1:(num_dates*num_workers),
+test_data$count <- sapply(1:(num_dates*num_timeseries),
                           function(x) { rpois(1, 50) })
-# worker anomalies
-test_data[test_data$worker_id == "1" &
+# ts anomalies
+test_data[test_data$ts_id == "1" &
             test_data$date > start_date, "count"] <- 100
-test_data[test_data$worker_id == "2" &
+test_data[test_data$ts_id == "2" &
             test_data$date > start_date, "count"] <- 1
 
-output_dir <- worker_analysis(
+output_dir <- ts_analysis(
   test_data, "test_analysis", start_date = start_date, period = "day",
   sig_p = 0.01)
-#> Warning in worker_analysis(test_data, "test_analysis", start_date =
-#> start_date, : computing worker models for app_id: test_analysis
-#> test_analysis/app_workers_model.rds
+#> Warning in ts_analysis(test_data, "test_analysis", start_date = start_date, :
+#> computing ts models for group_id: test_analysis
+#> test_analysis/group_timeseries_model.rds
 #> Saving 7 x 5 in image
 #> Saving 7 x 5 in image
 #> Saving 7 x 5 in image
@@ -66,8 +66,8 @@ output_dir <- worker_analysis(
 #> "none")` instead.
 #> Saving 7 x 5 in image
 #> Saving 7 x 5 in image
-paste("worker analysis output in directory:", output_dir)
-#> [1] "worker analysis output in directory: test_analysis"
+paste("timeseries analysis output in directory:", output_dir)
+#> [1] "timeseries analysis output in directory: test_analysis"
 ```
 
 ``` r
@@ -92,24 +92,12 @@ for(png in output_pngs){
 
 ![model\_timeseries\_summary.png](test_analysis/output/model_timeseries_summary.png)
 
-![model\_worker\_rank.png](test_analysis/output/model_worker_rank.png)
+![model\_ts\_rank.png](test_analysis/output/model_ts_rank.png)
 
 ![peers\_1.png](test_analysis/output/peers_1.png)
 
 ![peers\_2.png](test_analysis/output/peers_2.png)
 
-![peers\_24.png](test_analysis/output/peers_24.png)
+![ts\_1.png](test_analysis/output/ts_1.png)
 
-![peers\_26.png](test_analysis/output/peers_26.png)
-
-![peers\_29.png](test_analysis/output/peers_29.png)
-
-![worker\_1.png](test_analysis/output/worker_1.png)
-
-![worker\_2.png](test_analysis/output/worker_2.png)
-
-![worker\_24.png](test_analysis/output/worker_24.png)
-
-![worker\_26.png](test_analysis/output/worker_26.png)
-
-![worker\_29.png](test_analysis/output/worker_29.png)
+![ts\_2.png](test_analysis/output/ts_2.png)

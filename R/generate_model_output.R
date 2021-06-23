@@ -14,47 +14,47 @@
 #' @importFrom bsts SuggestBurn
 #' @importFrom zoo index
 
-desc_summary_count <- function(app_workers_data, start_date, output_dir) {
+desc_summary_count <- function(group_timeseries_data, start_date, output_dir) {
   # count summaries
-  app_workers_data %>%
+  group_timeseries_data %>%
     # drop leading zeroes
-    group_by(.data$worker_id) %>%
+    group_by(.data$ts_id) %>%
     arrange(.data$date) %>%
     filter(cumsum(.data$count) != 0) %>%
     # sum stats by date
     group_by(date) %>%
     summarise(across(.data$count, list(mean = mean, total = sum)),
-              workers_active = list(unique(.data$worker_id[.data$count > 0])),
+              timeseries_active = list(unique(.data$ts_id[.data$count > 0])),
               .groups = "drop") %>%
-    mutate(workers_total =
-             accumulate(.data$workers_active,
+    mutate(timeseries_total =
+             accumulate(.data$timeseries_active,
                         ~ unique(c(unlist(.x), unlist(.y))))) %>%
-    mutate(across(starts_with("workers_"), ~ purrr::map_int(.x, length)),
-           workers_active_new = .data$workers_total - lag(.data$workers_total),
-           workers_inactive_old = .data$workers_total - .data$workers_active,
-           workers_active_old = .data$workers_active -
-             .data$workers_active_new) %>%
+    mutate(across(starts_with("timeseries_"), ~ purrr::map_int(.x, length)),
+           timeseries_active_new = .data$timeseries_total - lag(.data$timeseries_total),
+           timeseries_inactive_old = .data$timeseries_total - .data$timeseries_active,
+           timeseries_active_old = .data$timeseries_active -
+             .data$timeseries_active_new) %>%
     pivot_longer(-.data$date) %>%
     write_csv(fs::path(output_dir, "desc_summary_count.csv")) %>%
-    filter(str_detect(.data$name, "^workers_(in)?active_") |
+    filter(str_detect(.data$name, "^timeseries_(in)?active_") |
              .data$name == "count_total") %>%
     filter(!is.na(.data$value)) %>%
     mutate(type = if_else(str_starts(.data$name, "count_"), .data$name,
-                                     str_extract(.data$name, "(^[^_]*)"))) %>%
+                          str_extract(.data$name, "(^[^_]*)"))) %>%
     ggplot(aes(.data$date, .data$value, fill = .data$name)) +
     geom_bar(stat = "identity", position = "dodge") +
     facet_wrap(~ .data$type, scales = "free_y", ncol = 1) +
     theme(legend.position = "bottom", legend.title = element_blank()) +
-    scale_fill_discrete(breaks = c("workers_active_new", "workers_active_old",
-                                   "workers_inactive_old")) +
+    scale_fill_discrete(breaks = c("timeseries_active_new", "timeseries_active_old",
+                                   "timeseries_inactive_old")) +
     geom_vline(xintercept = {{start_date}}, lty = 2, color = "grey")
   ggsave(fs::path(output_dir, "desc_summary_count.png"))
 }
 
-desc_summary_stats <- function(app_workers_data, start_date, output_dir) {
+desc_summary_stats <- function(group_timeseries_data, start_date, output_dir) {
   # stat summaries
-  app_workers_data %>%
-    group_by(.data$worker_id) %>%
+  group_timeseries_data %>%
+    group_by(.data$ts_id) %>%
     arrange(.data$date) %>%
     filter(cumsum(.data$count) != 0) %>%
     group_by(date) %>%
@@ -70,15 +70,15 @@ desc_summary_stats <- function(app_workers_data, start_date, output_dir) {
   ggsave(fs::path(output_dir, "desc_summary_stats.png"))
 }
 
-desc_quantile_timeseries <- function(app_workers_data, start_date, output_dir,
+desc_quantile_timeseries <- function(group_timeseries_data, start_date, output_dir,
                                      n_quantiles = 3) {
   # pre-quantile timeseries
-  desc_quantile_ts <- app_workers_data %>%
-    group_by(.data$worker_id) %>%
+  desc_quantile_ts <- group_timeseries_data %>%
+    group_by(.data$ts_id) %>%
     arrange(.data$date) %>%
     filter(cumsum(.data$count) != 0) %>%
     group_by(period = if_else(.data$date <= {{start_date}}, "pre", "post"),
-             .data$worker_id) %>%
+             .data$ts_id) %>%
     mutate(med_count = median(.data$count),
            mean_count = mean(.data$count),
            num_months = n()) %>%
@@ -103,11 +103,11 @@ desc_quantile_timeseries <- function(app_workers_data, start_date, output_dir,
   return(desc_quantile_ts)
 }
 
-model_summary <- function(app_workers_model, output_dir) {
-  sig_p <- app_workers_model[[1]]$model$alpha
+model_summary <- function(group_timeseries_model, output_dir) {
+  sig_p <- group_timeseries_model[[1]]$model$alpha
   model_summary <- tibble(
-    worker_id = str_remove(names(app_workers_model), "worker_"),
-    worker_perf = lapply(app_workers_model, function(mdl) {
+    ts_id = str_remove(names(group_timeseries_model), "ts_"),
+    ts_perf = lapply(group_timeseries_model, function(mdl) {
       if (is.null(mdl$summary)) {
         return(NA)
       }
@@ -118,7 +118,7 @@ model_summary <- function(app_workers_model, output_dir) {
                .data$AbsEffect_Cumulative, .data$RelEffect_Cumulative,
                .data$p_Cumulative, .data$p_Average)
     })) %>%
-    unnest(.data$worker_perf) %>%
+    unnest(.data$ts_perf) %>%
     mutate(deviance = case_when(
       .data$AbsEffect_Cumulative > 0 & .data$p_Cumulative < sig_p ~ "over",
       .data$AbsEffect_Cumulative < 0 & .data$p_Cumulative < sig_p ~ "under",
@@ -128,8 +128,8 @@ model_summary <- function(app_workers_model, output_dir) {
 
   model_summary %>%
     group_by(.data$deviance) %>%
-    summarize(workers = n(), .groups = "drop") %>%
-    ggplot(aes(.data$deviance, .data$workers, fill = .data$deviance)) +
+    summarize(timeseries = n(), .groups = "drop") %>%
+    ggplot(aes(.data$deviance, .data$timeseries, fill = .data$deviance)) +
     geom_bar(stat = "identity") +
     theme(legend.position = "none") +
     ggtitle("Cumulative model summary")
@@ -138,27 +138,27 @@ model_summary <- function(app_workers_model, output_dir) {
   return(model_summary)
 }
 
-model_summary_timeseries <- function(app_workers_model, output_dir) {
-  start_date <- max(app_workers_model[[1]]$model$pre.period)
-  timeseries_summary <- tibble(worker_id = names(app_workers_model),
-         app_id = fs::path_dir(output_dir),
-         series = purrr::map(app_workers_model, ~ purrr::pluck(.x, "series") %>%
-                               as.data.frame() %>%
-                               tibble::rownames_to_column("date"))) %>%
+model_summary_timeseries <- function(group_timeseries_model, output_dir) {
+  start_date <- max(group_timeseries_model[[1]]$model$pre.period)
+  timeseries_summary <- tibble(ts_id = names(group_timeseries_model),
+                               group_id = fs::path_dir(output_dir),
+                               series = purrr::map(group_timeseries_model, ~ purrr::pluck(.x, "series") %>%
+                                                     as.data.frame() %>%
+                                                     tibble::rownames_to_column("date"))) %>%
     unnest(.data$series) %>%
     mutate(point_perf = case_when(point.effect.lower > 0 ~ "over",
                                   point.effect.upper < 0  ~ "under",
                                   TRUE ~ "average")) %>%
-    select(.data$date, .data$app_id, .data$point_perf) %>%
+    select(.data$date, .data$group_id, .data$point_perf) %>%
     mutate(date = lubridate::ymd(.data$date)) %>%
     filter(.data$date >= {{start_date}}) %>%
-    group_by(.data$date , .data$app_id, .data$point_perf) %>%
-    summarise(workers = n(), .groups = "drop") %>%
-    arrange(.data$app_id, .data$date) %>%
+    group_by(.data$date , .data$group_id, .data$point_perf) %>%
+    summarise(timeseries = n(), .groups = "drop") %>%
+    arrange(.data$group_id, .data$date) %>%
     write_csv(fs::path(output_dir, "model_summary_timeseries.csv"))
 
   timeseries_summary %>%
-    ggplot(aes(.data$date, .data$workers, fill = .data$point_perf,
+    ggplot(aes(.data$date, .data$timeseries, fill = .data$point_perf,
                color = .data$point_perf)) +
     geom_bar(stat = "identity") +
     theme(legend.position = "bottom", legend.title = element_blank())
@@ -166,97 +166,97 @@ model_summary_timeseries <- function(app_workers_model, output_dir) {
   return(timeseries_summary)
 }
 
-model_group_timeseries <- function(app_workers_model, output_dir) {
-  start_date <- max(app_workers_model[[1]]$model$pre.period)
-  model_summary <- model_summary(app_workers_model, output_dir)
+model_group_timeseries <- function(group_timeseries_model, output_dir) {
+  start_date <- max(group_timeseries_model[[1]]$model$pre.period)
+  model_summary <- model_summary(group_timeseries_model, output_dir)
   group_timeseries <- model_summary %>%
-    select(.data$worker_id, .data$p_Cumulative) %>%
+    select(.data$ts_id, .data$p_Cumulative) %>%
     mutate(series = purrr::map(
-      .data$worker_id, ~ app_workers_model[[paste0("worker_", .x)]]$series %>%
+      .data$ts_id, ~ group_timeseries_model[[paste0("ts_", .x)]]$series %>%
         as.data.frame() %>% tibble::rownames_to_column("date"))) %>%
     unnest(.data$series) %>%
     mutate(date = lubridate::ymd(.data$date)) %>%
     write_csv(fs::path(output_dir, "model_group_timeseries.csv"))
   group_timeseries %>%
-    select(.data$worker_id, .data$date, count = .data$response) %>%
+    select(.data$ts_id, .data$date, count = .data$response) %>%
     left_join(
       model_summary %>%
-        select(.data$worker_id, .data$deviance), by = "worker_id") %>%
+        select(.data$ts_id, .data$deviance), by = "ts_id") %>%
     group_by(.data$date, .data$deviance) %>%
     summarise(across(.data$count, list(mean = mean, sd = sd))) %>%
     ggplot(aes(.data$date, .data$count_mean, color = .data$deviance)) +
     geom_line() +
     geom_vline(xintercept = {{start_date}}, lty = 2, color = "grey")
-    # geom_errorbar(aes(ymin = .data$count_mean - 1.96 * .data$count_sd,
-    #                   ymax = .data$count_mean + 1.96 * .data$count_sd),
-    #               alpha = 0.3)
+  # geom_errorbar(aes(ymin = .data$count_mean - 1.96 * .data$count_sd,
+  #                   ymax = .data$count_mean + 1.96 * .data$count_sd),
+  #               alpha = 0.3)
   ggsave(fs::path(output_dir, "model_group_timeseries.png"))
   return(group_timeseries)
 }
 
-model_worker_peers <- function(app_workers_model, output_dir,
-                               peer_plots = FALSE) {
-  start_date <- max(app_workers_model[[1]]$model$pre.period)
-  model_summary <- model_summary(app_workers_model, output_dir)
+model_ts_peers <- function(group_timeseries_model, output_dir,
+                           peer_plots = FALSE) {
+  start_date <- max(group_timeseries_model[[1]]$model$pre.period)
+  model_summary <- model_summary(group_timeseries_model, output_dir)
   purrr::map_dfr(
     pull(filter(model_summary, .data$deviance != "average"),
-         .data$worker_id), function(.x) {
-      worker_mdl <- app_workers_model[[paste0("worker_", .x)]]
-      # worker plots
-      plot(worker_mdl, "original")
-      ggsave(fs::path(output_dir, paste0("worker_", .x, ".png")))
-      # peer plots
-      if (peer_plots) {
-        peer_data <- peer_plot(worker_mdl, target_worker_id = .x)
-        ggsave(fs::path(output_dir, paste0("peers_", .x, ".png")))
-      }
-      return(peer_data)
-      }) %>% bind_rows() %>%
-    write_csv(fs::path(output_dir, "model_worker_peers.csv")) %>%
+         .data$ts_id), function(.x) {
+           ts_mdl <- group_timeseries_model[[paste0("ts_", .x)]]
+           # ts plots
+           plot(ts_mdl, "original")
+           ggsave(fs::path(output_dir, paste0("ts_", .x, ".png")))
+           # peer plots
+           if (peer_plots) {
+             peer_data <- peer_plot(ts_mdl, target_ts_id = .x)
+             ggsave(fs::path(output_dir, paste0("peers_", .x, ".png")))
+           }
+           return(peer_data)
+         }) %>% bind_rows() %>%
+    write_csv(fs::path(output_dir, "model_ts_peers.csv")) %>%
     return()
 }
 
-peer_plot <- function(worker_mdl, target_worker_id, max_peers = 10,
+peer_plot <- function(ts_mdl, target_ts_id, max_peers = 10,
                       inclusion_thresh = 0.01) {
-  dates <- worker_mdl$series %>% zoo::index()
-  peer_data <- worker_mdl$model$bsts.model$predictors %>% as_tibble() %>%
+  dates <- ts_mdl$series %>% zoo::index()
+  peer_data <- ts_mdl$model$bsts.model$predictors %>% as_tibble() %>%
     mutate(date = dates) %>%
     bind_cols(tibble(
-      target = scale(as.numeric(worker_mdl$series$response)))) %>%
+      target = scale(as.numeric(ts_mdl$series$response)))) %>%
     select(-.data$`(Intercept)`) %>%
-    pivot_longer(-date, names_to = "worker_id", values_to = "scaled_count") %>%
+    pivot_longer(-date, names_to = "ts_id", values_to = "scaled_count") %>%
     left_join(
-      worker_mdl$model$bsts.model$coefficients %>% as_tibble() %>%
-        slice(n = bsts::SuggestBurn(0.1, worker_mdl$model$bsts.model):n()) %>%
-        pivot_longer(everything(), names_to = "worker_id",
+      ts_mdl$model$bsts.model$coefficients %>% as_tibble() %>%
+        slice(n = bsts::SuggestBurn(0.1, ts_mdl$model$bsts.model):n()) %>%
+        pivot_longer(everything(), names_to = "ts_id",
                      values_to = "coef") %>%
-        group_by(.data$worker_id) %>%
+        group_by(.data$ts_id) %>%
         summarise(inclusion_prob = mean(.data$coef != 0),
                   coef = mean(.data$coef[.data$coef != 0]),
                   positive_prob = mean(.data$coef > 0),
                   sign = if_else(.data$positive_prob > 0.5, 1, -1),
                   .groups = "drop") %>%
         arrange(-.data$inclusion_prob, -.data$positive_prob),
-      by = "worker_id") %>%
+      by = "ts_id") %>%
     mutate(scaled_count = if_else(!is.na(.data$coef),
                                   .data$scaled_count * .data$coef,
                                   .data$scaled_count),
-           inclusion_prob = if_else(.data$worker_id == "target", 1,
+           inclusion_prob = if_else(.data$ts_id == "target", 1,
                                     .data$inclusion_prob),
            inclusion_rank = dense_rank(-.data$inclusion_prob)) %>%
-    mutate(target_worker_id = {{target_worker_id}})
+    mutate(target_ts_id = {{target_ts_id}})
 
   peer_data %>%
     filter(.data$inclusion_rank %in% 1:max_peers &
              .data$inclusion_prob > inclusion_thresh) %>%
-    mutate(type = forcats::fct_rev(if_else(.data$worker_id == "target",
+    mutate(type = forcats::fct_rev(if_else(.data$ts_id == "target",
                                            "target", "peers")),
-           alpha = scale(if_else(.data$worker_id == "target", 1,
+           alpha = scale(if_else(.data$ts_id == "target", 1,
                                  .data$inclusion_prob))) %>%
-    ggplot(aes(.data$date, .data$scaled_count, group = .data$worker_id,
+    ggplot(aes(.data$date, .data$scaled_count, group = .data$ts_id,
                color = .data$type, alpha = .data$alpha, lty = .data$type)) +
     geom_line() +
-    geom_vline(xintercept = max(worker_mdl$model$pre.period), lty = 2,
+    geom_vline(xintercept = max(ts_mdl$model$pre.period), lty = 2,
                color = "grey") +
     theme(legend.position = "bottom", legend.title = element_blank()) +
     guides(alpha = FALSE)
@@ -264,31 +264,31 @@ peer_plot <- function(worker_mdl, target_worker_id, max_peers = 10,
   return(peer_data)
 }
 
-model_worker_rank <- function(app_workers_model, app_workers_data, output_dir,
-                              top_workers = 5) {
-  model_summary <- model_summary(app_workers_model, output_dir)
-  start_date <- max(app_workers_model[[1]]$model$pre.period)
-  worker_rank <- app_workers_data %>%
+model_ts_rank <- function(group_timeseries_model, group_timeseries_data, output_dir,
+                          top_timeseries = 5) {
+  model_summary <- model_summary(group_timeseries_model, output_dir)
+  start_date <- max(group_timeseries_model[[1]]$model$pre.period)
+  ts_rank <- group_timeseries_data %>%
     select(-.data$active) %>%
     # fill in missing months with zeroes
     pivot_wider(names_from = .data$date, values_from = .data$count,
                 values_fill = 0) %>%
-    pivot_longer(cols = -.data$worker_id,
+    pivot_longer(cols = -.data$ts_id,
                  names_to = "date", values_to = "count") %>%
     mutate(date = lubridate::ymd(date)) %>%
-    group_by(.data$worker_id) %>%
+    group_by(.data$ts_id) %>%
     arrange(.data$date) %>%
     # drop leading zeroes (replace with NA)
     mutate(count = if_else(cumsum(.data$count) == 0, NA_real_, .data$count)) %>%
     # drop NA months (leading zeroes)
     ungroup() %>%  filter(!is.na(.data$count)) %>%
     # loess pre-post stat
-    group_by(.data$worker_id) %>% arrange(.data$worker_id, .data$date) %>%
+    group_by(.data$ts_id) %>% arrange(.data$ts_id, .data$date) %>%
     mutate(count_smooth = stats::lowess(.data$count, f = 1/3)$y) %>%
     # agg pre/post stats
     group_by(period = if_else(.data$date < {{start_date}}, "pre", "post"),
-             .data$worker_id) %>%
-    arrange(.data$period, .data$worker_id, .data$date) %>%
+             .data$ts_id) %>%
+    arrange(.data$period, .data$ts_id, .data$date) %>%
     summarise(count_mean = mean(.data$count),
               count_smooth = unique(if_else(.data$period == "pre",
                                             last(.data$count_smooth),
@@ -323,13 +323,13 @@ model_worker_rank <- function(app_workers_model, app_workers_data, output_dir,
            count_smooth_rank = rank(-abs(.data$count_smooth_diff)),
            count_smooth_pctile_rank = rank(-abs(.data$count_smooth_pctile_diff)),
            count_mean_rank = rank(-abs(.data$count_mean_diff))) %>%
-    select(.data$worker_id, .data$count_mean_diff, .data$count_mean_pctile_diff,
+    select(.data$ts_id, .data$count_mean_diff, .data$count_mean_pctile_diff,
            .data$count_mean_pctile_rank, .data$count_mean_rank,
            .data$count_smooth_rank, .data$count_smooth_pctile_rank,
            .data$data) %>%
     arrange(.data$count_mean_pctile_rank + .data$count_mean_rank +
               .data$count_smooth_rank + .data$count_smooth_pctile_rank) %>%
-    mutate(joined_rank = paste0(str_sub(.data$worker_id, 1, 5),
+    mutate(joined_rank = paste0(str_sub(.data$ts_id, 1, 5),
                                 " mean_pctile: ", .data$count_mean_pctile_rank,
                                 " mean: ", .data$count_mean_rank,
                                 " smooth: ", .data$count_smooth_rank,
@@ -338,49 +338,49 @@ model_worker_rank <- function(app_workers_model, app_workers_data, output_dir,
     unnest(.data$data) %>%
     left_join({{model_summary}} %>%
                 mutate(tscompare_rank = rank(.data$p_Cumulative)) %>%
-                select(.data$worker_id, .data$tscompare_rank),
-              by = "worker_id") %>%
-    select(.data$worker_id, .data$date, .data$count, contains("rank"),
+                select(.data$ts_id, .data$tscompare_rank),
+              by = "ts_id") %>%
+    select(.data$ts_id, .data$date, .data$count, contains("rank"),
            -.data$joined_rank) %>%
-    write_csv(fs::path(output_dir, "model_worker_rank.csv"))
+    write_csv(fs::path(output_dir, "model_ts_rank.csv"))
 
-  worker_rank %>%
-    filter(.data$count_mean_pctile_rank <= {{top_workers}} |
-             .data$count_mean_rank <= {{top_workers}} |
-             .data$count_smooth_rank <= {{top_workers}} |
-             .data$count_smooth_pctile_rank <= {{top_workers}} |
-             .data$tscompare_rank <= {{top_workers}}) %>%
-    mutate(title = paste(str_sub(.data$worker_id, 1, 5),
+  ts_rank %>%
+    filter(.data$count_mean_pctile_rank <= {{top_timeseries}} |
+             .data$count_mean_rank <= {{top_timeseries}} |
+             .data$count_smooth_rank <= {{top_timeseries}} |
+             .data$count_smooth_pctile_rank <= {{top_timeseries}} |
+             .data$tscompare_rank <= {{top_timeseries}}) %>%
+    mutate(title = paste(str_sub(.data$ts_id, 1, 5),
                          .data$tscompare_rank, .data$count_mean_rank,
                          .data$count_mean_pctile_rank, .data$count_smooth_rank,
                          .data$count_smooth_pctile_rank)) %>%
     ggplot(aes(.data$date, .data$count, group = .data$title)) + geom_line() +
     facet_wrap(~ .data$title, scales = "free_y", ncol = 3) +
     geom_vline(xintercept = {{start_date}}, lty = 2, color = "grey")
-  ggsave(fs::path(output_dir, "model_worker_rank.png"), width = 8,
-         height = 2 * top_workers)
+  ggsave(fs::path(output_dir, "model_ts_rank.png"), width = 8,
+         height = 2 * top_timeseries)
 }
 
-generate_output <- function(app_workers_model, app_workers_data, app_id, sig_p,
-                            top_workers = 5) {
+generate_output <- function(group_timeseries_model, group_timeseries_data, group_id, sig_p,
+                            top_timeseries = 5) {
   # setup
-  output_dir <- fs::path(app_id, "output")
+  output_dir <- fs::path(group_id, "output")
   fs::dir_create(output_dir)
-  start_date <- max(app_workers_model[[1]]$model$pre.period)
+  start_date <- max(group_timeseries_model[[1]]$model$pre.period)
 
   # descriptive outputs
-  dsc <- desc_summary_count(app_workers_data, start_date, output_dir)
-  dss <- desc_summary_stats(app_workers_data, start_date, output_dir)
-  dqt <- desc_quantile_timeseries(app_workers_data, start_date, output_dir)
+  dsc <- desc_summary_count(group_timeseries_data, start_date, output_dir)
+  dss <- desc_summary_stats(group_timeseries_data, start_date, output_dir)
+  dqt <- desc_quantile_timeseries(group_timeseries_data, start_date, output_dir)
 
   # model outputs
-  ms <- model_summary(app_workers_model, output_dir)
-  mst <- model_summary_timeseries(app_workers_model, output_dir)
-  mgt <- model_group_timeseries(app_workers_model, output_dir)
+  ms <- model_summary(group_timeseries_model, output_dir)
+  mst <- model_summary_timeseries(group_timeseries_model, output_dir)
+  mgt <- model_group_timeseries(group_timeseries_model, output_dir)
 
-  # model worker outputs
-  mwp <- model_worker_peers(app_workers_model, output_dir, top_workers)
-  mwr <- model_worker_rank(app_workers_model, app_workers_data, output_dir,
-                           top_workers)
-  return(app_id)
+  # model ts outputs
+  mwp <- model_ts_peers(group_timeseries_model, output_dir, top_timeseries)
+  mwr <- model_ts_rank(group_timeseries_model, group_timeseries_data, output_dir,
+                       top_timeseries)
+  return(group_id)
 }
