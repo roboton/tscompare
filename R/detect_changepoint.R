@@ -54,10 +54,6 @@ detect_changepoint <- function(group_timeseries_data, group_id, num_cpts = 1,
              after_mean = mean(.data$count[.data$date > .data$change_date]),
              mean_change = .data$after_mean - .data$before_mean,
              pct_change = .data$mean_change / .data$before_mean)
-    if (include_model) {
-      cpt_row <- cpt_row %>%
-        mutate(cpt_mdl = list(cpt_mdl))
-    }
     if (!include_data) {
       cpt_row <- cpt_row %>%
         select(-date, -count) %>%
@@ -65,6 +61,10 @@ detect_changepoint <- function(group_timeseries_data, group_id, num_cpts = 1,
     } else {
       cpt_row <- cpt_row %>%
         nest_by(across(-c(date, count)))
+    }
+    if (include_model) {
+      cpt_row <- cpt_row %>%
+        mutate(cpt_mdl = list(cpt_mdl))
     }
     return(cpt_row)
   }) %>% bind_rows()
