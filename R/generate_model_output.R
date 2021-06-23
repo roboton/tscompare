@@ -337,8 +337,8 @@ model_worker_rank <- function(app_workers_model, app_workers_data, output_dir,
                                 .data$count_smooth_pctile_rank)) %>%
     unnest(.data$data) %>%
     left_join({{model_summary}} %>%
-                mutate(chwork_rank = rank(.data$p_Cumulative)) %>%
-                select(.data$worker_id, .data$chwork_rank),
+                mutate(tscompare_rank = rank(.data$p_Cumulative)) %>%
+                select(.data$worker_id, .data$tscompare_rank),
               by = "worker_id") %>%
     select(.data$worker_id, .data$date, .data$count, contains("rank"),
            -.data$joined_rank) %>%
@@ -349,9 +349,9 @@ model_worker_rank <- function(app_workers_model, app_workers_data, output_dir,
              .data$count_mean_rank <= {{top_workers}} |
              .data$count_smooth_rank <= {{top_workers}} |
              .data$count_smooth_pctile_rank <= {{top_workers}} |
-             .data$chwork_rank <= {{top_workers}}) %>%
+             .data$tscompare_rank <= {{top_workers}}) %>%
     mutate(title = paste(str_sub(.data$worker_id, 1, 5),
-                         .data$chwork_rank, .data$count_mean_rank,
+                         .data$tscompare_rank, .data$count_mean_rank,
                          .data$count_mean_pctile_rank, .data$count_smooth_rank,
                          .data$count_smooth_pctile_rank)) %>%
     ggplot(aes(.data$date, .data$count, group = .data$title)) + geom_line() +

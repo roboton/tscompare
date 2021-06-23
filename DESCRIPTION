@@ -1,5 +1,5 @@
-Package: chwork
-Title: Analyzes Community Health Worker Data
+Package: tscompare
+Title: Time Series comparisons using BSTS to construct comparable synthetic controls
 Version: 0.0.0.9000
 Authors@R: 
     person(given = "Robert",

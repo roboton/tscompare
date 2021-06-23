@@ -1,23 +1,22 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# chwork
+# tscompare
 
 <!-- badges: start -->
-
 <!-- badges: end -->
 
-The goal of chwork is to provide an analytics library for Community
+The goal of tscompare is to provide an analytics library for Community
 Health Worker related data.
 
 ## Installation
 
-You can install lhe development version of chwork from
+You can install lhe development version of tscompare from
 [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("roboton/chwork")
+devtools::install_github("roboton/tscompare")
 ```
 
 ## Example
@@ -26,7 +25,7 @@ This is a basic example with simulated data with two worker anomalies
 (one over and one under).
 
 ``` r
-library(chwork)
+library(tscompare)
 set.seed(143)
 num_dates <- 90
 num_workers <- 30
@@ -59,14 +58,12 @@ output_dir <- worker_analysis(
 #> Saving 7 x 5 in image
 #> Saving 7 x 5 in image
 #> Saving 7 x 5 in image
+#> Warning: `guides(<scale> = FALSE)` is deprecated. Please use `guides(<scale> =
+#> "none")` instead.
 #> Saving 7 x 5 in image
 #> Saving 7 x 5 in image
-#> Saving 7 x 5 in image
-#> Saving 7 x 5 in image
-#> Saving 7 x 5 in image
-#> Saving 7 x 5 in image
-#> Saving 7 x 5 in image
-#> Saving 7 x 5 in image
+#> Warning: `guides(<scale> = FALSE)` is deprecated. Please use `guides(<scale> =
+#> "none")` instead.
 #> Saving 7 x 5 in image
 #> Saving 7 x 5 in image
 paste("worker analysis output in directory:", output_dir)

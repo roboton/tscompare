@@ -13,20 +13,20 @@ knitr::opts_chunk$set(
 )
 ```
 
-# chwork
+# tscompare
 
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of chwork is to provide an analytics library for Community Health Worker related data.
+The goal of tscompare is to provide an analytics library for Community Health Worker related data.
 
 ## Installation
 
-You can install lhe development version of chwork from [GitHub](https://github.com/) with:
+You can install lhe development version of tscompare from [GitHub](https://github.com/) with:
 
 ```{r eval=FALSE, include=TRUE}
 # install.packages("devtools")
-devtools::install_github("roboton/chwork")
+devtools::install_github("roboton/tscompare")
 ```
 
 ## Example
@@ -34,7 +34,7 @@ devtools::install_github("roboton/chwork")
 This is a basic example with simulated data with two worker anomalies (one over and one under).
 
 ```{r example}
-library(chwork)
+library(tscompare)
 set.seed(143)
 num_dates <- 90
 num_workers <- 30
