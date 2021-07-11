@@ -15,7 +15,6 @@ compute_ts_models <- function(group_timeseries_data, start_date, period,
 
   # CausalImpact can only handle one seasonality adjustment (use bsts for more)
   season_duration <- 1
-  period <- "month"
   if (period == "month") {
     num_seasons <- 12
   } else if (period == "week") {
