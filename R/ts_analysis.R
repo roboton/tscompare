@@ -135,7 +135,8 @@ ts_analysis <- function(group_timeseries_data,
   }
   print(model_file)
   if (gen_output) {
-    generate_output(group_timeseries_model, group_timeseries_data, group_id,
-                    sig_p)
+    group_id <- generate_output(group_timeseries_model, group_timeseries_data,
+                                group_id, sig_p)
   }
+  return(group_id)
 }
