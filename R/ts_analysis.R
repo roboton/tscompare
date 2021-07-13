@@ -17,7 +17,7 @@
 #'  pre-period.
 #' @param min_post_periods number of time units to qualify as an active ts
 #'  in post-period.
-#' @param min_timeseries minimum number of active timeseries to run the analysis.
+#' @param min_timeseries minimum number of active timeseries needed.
 #' @param sig_p p-value threshold to determine statistical significance.
 #' @param save_model_data save_model_data whether to save analysis data.
 #' @param save_model save_model whether to save user models.
@@ -58,6 +58,7 @@ ts_analysis <- function(group_timeseries_data,
                         sig_p = 0.05,
                         save_model_data = TRUE,
                         save_model = TRUE,
+                        gen_output = TRUE,
                         use_cache = FALSE) {
   # arg checks
   req_cols <- c("date", "ts_id", "count")
@@ -113,8 +114,8 @@ ts_analysis <- function(group_timeseries_data,
     group_timeseries_data <- readRDS(model_data_file)
   } else {
     group_timeseries_data <- prep_group_timeseries(
-      group_timeseries_data, period, min_pre_periods, min_post_periods, min_timeseries,
-      start_date)
+      group_timeseries_data, period, min_pre_periods, min_post_periods,
+      min_timeseries, start_date)
     if (save_model_data) {
       saveRDS(group_timeseries_data, model_data_file)
     }
@@ -133,5 +134,8 @@ ts_analysis <- function(group_timeseries_data,
     }
   }
   print(model_file)
-  generate_output(group_timeseries_model, group_timeseries_data, group_id, sig_p)
+  if (gen_output) {
+    generate_output(group_timeseries_model, group_timeseries_data, group_id,
+                    sig_p)
+  }
 }

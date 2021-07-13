@@ -140,11 +140,12 @@ model_summary <- function(group_timeseries_model, output_dir) {
 
 model_summary_timeseries <- function(group_timeseries_model, output_dir) {
   start_date <- max(group_timeseries_model[[1]]$model$pre.period)
-  timeseries_summary <- tibble(ts_id = names(group_timeseries_model),
-                               group_id = fs::path_dir(output_dir),
-                               series = purrr::map(group_timeseries_model, ~ purrr::pluck(.x, "series") %>%
-                                                     as.data.frame() %>%
-                                                     tibble::rownames_to_column("date"))) %>%
+  timeseries_summary <- tibble(
+    ts_id = names(group_timeseries_model),
+    group_id = fs::path_dir(output_dir),
+    series = purrr::map(group_timeseries_model, ~ purrr::pluck(.x, "series") %>%
+                          as.data.frame() %>%
+                          tibble::rownames_to_column("date"))) %>%
     unnest(.data$series) %>%
     mutate(point_perf = case_when(point.effect.lower > 0 ~ "over",
                                   point.effect.upper < 0  ~ "under",
@@ -361,8 +362,8 @@ model_ts_rank <- function(group_timeseries_model, group_timeseries_data, output_
          height = 2 * top_timeseries)
 }
 
-generate_output <- function(group_timeseries_model, group_timeseries_data, group_id, sig_p,
-                            top_timeseries = 5) {
+generate_output <- function(group_timeseries_model, group_timeseries_data,
+                            group_id, sig_p, top_timeseries = 5) {
   # setup
   output_dir <- fs::path(group_id, "output")
   fs::dir_create(output_dir)
