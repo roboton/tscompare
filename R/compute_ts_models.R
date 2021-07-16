@@ -1,7 +1,7 @@
 #' @import dplyr
 #' @importFrom rlang .data
 compute_ts_models <- function(group_timeseries_data, start_date, period,
-                              sig_p, model_family = "poisson") {
+                              sig_p) {
   group_timeseries_data_wide <- group_timeseries_data %>%
     filter(.data$active) %>% select(-.data$active) %>%
     arrange(date) %>%
@@ -36,7 +36,6 @@ compute_ts_models <- function(group_timeseries_data, start_date, period,
       ts_dat, pre_period, post_period, alpha = sig_p,
       # monthly seasonal component
       model.args = list(nseasons = num_seasons,
-                        family = model_family,
                         season.duration = season_duration,
                         standardize.data = FALSE))
     return(ts_mdl)
